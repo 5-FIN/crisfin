@@ -1,0 +1,56 @@
+spring:
+  application:
+    name: crisfin-backend
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/crisfin}
+    username: ${DB_USERNAME:crisfin}
+    password: ${DB_PASSWORD:crisfin}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          batch_size: 50
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    time-zone: Asia/Seoul
+server:
+  port: 8080
+jwt:
+  secret: ${JWT_SECRET:crisfin-dev-secret-key-must-be-at-least-256-bits-long-for-hs256-testing}
+  access-expiration: 1800000
+  refresh-expiration: 604800000
+llm:
+  providers:
+    order: GEMINI,CLAUDE,OPENAI
+  gemini:
+    api-key: ${GEMINI_API_KEY:}
+    model: gemini-1.5-pro
+  claude:
+    api-key: ${CLAUDE_API_KEY:}
+    model: claude-sonnet-4-6
+  openai:
+    api-key: ${OPENAI_API_KEY:}
+    model: gpt-4o
+welfare:
+  api:
+    key: ${PUBLIC_DATA_API_KEY:}
+    base-url: https://api.odcloud.kr/api/15090532/v1
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+logging:
+  level:
+    com.finfive.crisfin: INFO
