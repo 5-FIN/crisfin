@@ -43,7 +43,7 @@ public class AnalysisResult {
     private String situationDescription;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb")
+    @Column(name = "input_mydata_json", columnDefinition = "jsonb")
     private Map<String, Object> inputMyDataJson;
 
     @JdbcTypeCode(SqlTypes.JSON)

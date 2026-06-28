@@ -1,0 +1,21 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: crisfin-postgres
+    environment:
+      POSTGRES_DB: crisfin
+      POSTGRES_USER: crisfin
+      POSTGRES_PASSWORD: crisfin
+    ports:
+      - "5432:5432"
+    volumes:
+      - crisfin-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crisfin -d crisfin"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  crisfin-pg-data:

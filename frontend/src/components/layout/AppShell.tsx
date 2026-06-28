@@ -18,23 +18,18 @@ const NAV = [
   { href: '/settings',  icon: Settings,         label: '설정',     disabled: true },
 ]
 
-export default function AppShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname()
-  const router   = useRouter()
-  const [open, setOpen] = useState(false)
-
-  const analysis = typeof window !== 'undefined' ? analysisStore.load() : null
-  const crisisLabel = analysis
-    ? CRISIS_LABELS[analysis.crisisType as string] ?? analysis.crisisType
-    : null
-
-  function handleLogout() {
-    tokenStore.clear()
-    analysisStore.clear()
-    router.push('/')
-  }
-
-  const SidebarContent = () => (
+function SidebarNav({
+  pathname,
+  crisisLabel,
+  onClose,
+  onLogout,
+}: {
+  pathname: string
+  crisisLabel: string | null
+  onClose: () => void
+  onLogout: () => void
+}) {
+  return (
     <div className="flex flex-col h-full">
       {/* 로고 */}
       <div className="flex items-center gap-2 px-5 py-5 border-b border-[#E2E8F0]">
@@ -54,29 +49,36 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <nav className="flex-1 px-3 py-4 space-y-1">
         {NAV.map(({ href, icon: Icon, label, badge, disabled }) => {
           const active = pathname === href
+          if (disabled) {
+            return (
+              <span
+                key={href}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#CBD5E1] cursor-not-allowed"
+              >
+                <Icon size={18} />
+                <span className="flex-1">{label}</span>
+                <span className="text-[10px] border border-[#E2E8F0] rounded px-1">준비중</span>
+              </span>
+            )
+          }
           return (
             <Link
               key={href}
-              href={disabled ? '#' : href}
-              onClick={() => setOpen(false)}
+              href={href}
+              onClick={onClose}
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                 active
                   ? 'bg-[#EFF6FF] text-[#2563EB]'
-                  : disabled
-                  ? 'text-[#CBD5E1] cursor-not-allowed'
                   : 'text-[#475569] hover:bg-[#F8FAFC] hover:text-[#1E293B]',
               )}
             >
               <Icon size={18} />
               <span className="flex-1">{label}</span>
-              {badge && !disabled && (
+              {badge && (
                 <span className="w-5 h-5 rounded-full bg-[#F59E0B] text-white text-[10px] font-bold flex items-center justify-center">
                   {badge}
                 </span>
-              )}
-              {disabled && (
-                <span className="text-[10px] text-[#CBD5E1] border border-[#E2E8F0] rounded px-1">준비중</span>
               )}
             </Link>
           )
@@ -86,7 +88,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {/* 하단 로그아웃 */}
       <div className="px-3 py-4 border-t border-[#E2E8F0]">
         <button
-          onClick={handleLogout}
+          onClick={onLogout}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#EF4444] transition-colors"
         >
           <LogOut size={18} />
@@ -95,12 +97,29 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </div>
     </div>
   )
+}
+
+export default function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+  const router   = useRouter()
+  const [open, setOpen] = useState(false)
+
+  const analysis = typeof window !== 'undefined' ? analysisStore.load() : null
+  const crisisLabel = analysis
+    ? CRISIS_LABELS[analysis.crisisType as string] ?? analysis.crisisType
+    : null
+
+  function handleLogout() {
+    tokenStore.clear()
+    analysisStore.clear()
+    router.push('/')
+  }
 
   return (
     <div className="flex h-screen bg-[#F9FAFB] overflow-hidden">
       {/* 데스크탑 사이드바 */}
       <aside className="hidden md:flex w-60 flex-col bg-white border-r border-[#E2E8F0] flex-shrink-0">
-        <SidebarContent />
+        <SidebarNav pathname={pathname} crisisLabel={crisisLabel} onClose={() => setOpen(false)} onLogout={handleLogout} />
       </aside>
 
       {/* 모바일 드로어 오버레이 */}
@@ -108,7 +127,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className="fixed inset-0 z-40 md:hidden">
           <div className="absolute inset-0 bg-black/30" onClick={() => setOpen(false)} />
           <aside className="absolute left-0 top-0 h-full w-64 bg-white shadow-xl z-50">
-            <SidebarContent />
+            <SidebarNav pathname={pathname} crisisLabel={crisisLabel} onClose={() => setOpen(false)} onLogout={handleLogout} />
           </aside>
         </div>
       )}
