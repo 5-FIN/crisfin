@@ -52,7 +52,7 @@ export interface CrisisTypeResponse {
   type: CrisisType
   label: string
   emoji: string
-  isRecurring: boolean
+  recurring: boolean
   description: string
 }
 
@@ -161,6 +161,6 @@ export interface WelfareBenefitResponse {
   ministryName: string
   contact: string | null
   crisisTags: CrisisType[]
-  isActive: boolean
-  lastSyncedAt: string
+  active: boolean
+  lastSyncedAt: string | null
 }
