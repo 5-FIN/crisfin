@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+**/.DS_Store
+
+# IntelliJ IDEA
+.idea/
+
+# Gradle build outputs & caches
+**/build/
+**/.gradle/
+
+# Claude Code — local/machine-specific permissions
+.claude/settings.local.json
+
+# Environment secrets (use .env.example as template)
+.env
