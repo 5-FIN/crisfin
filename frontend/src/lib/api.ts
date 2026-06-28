@@ -8,8 +8,8 @@ import type {
   WelfareBenefitResponse,
 } from '@/lib/types'
 
-/* ── 기본 fetch 래퍼 ── */
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+/* ── 저수준 fetch (토큰 갱신 없음) ── */
+async function rawFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const token = tokenStore.getAccess()
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -21,27 +21,60 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const body: ApiResponse<T> = await res.json()
 
   if (!body.success) {
-    throw new Error(body.error?.message ?? '요청 중 오류가 발생했습니다.')
+    const err = Object.assign(
+      new Error(body.error?.message ?? '요청 중 오류가 발생했습니다.'),
+      { status: res.status },
+    )
+    throw err
   }
   return body.data
+}
+
+/* ── 토큰 자동 갱신 포함 fetch ── */
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  try {
+    return await rawFetch<T>(path, init)
+  } catch (err: unknown) {
+    if (err instanceof Error && (err as Error & { status?: number }).status === 401) {
+      const refreshToken = tokenStore.getRefresh()
+      if (!refreshToken) {
+        tokenStore.clear()
+        if (typeof window !== 'undefined') window.location.href = '/'
+        throw new Error('로그인이 필요합니다.')
+      }
+      try {
+        const newAuth = await rawFetch<AuthResponse>('/api/v1/auth/refresh', {
+          method: 'POST',
+          body: JSON.stringify({ refreshToken }),
+        })
+        tokenStore.set(newAuth.accessToken, newAuth.refreshToken)
+        return await rawFetch<T>(path, init)
+      } catch {
+        tokenStore.clear()
+        if (typeof window !== 'undefined') window.location.href = '/'
+        throw new Error('세션이 만료되었습니다. 다시 로그인해주세요.')
+      }
+    }
+    throw err
+  }
 }
 
 /* ── Auth ── */
 export const authApi = {
   signup: (data: SignupRequest) =>
-    request<AuthResponse>('/api/v1/auth/signup', {
+    rawFetch<AuthResponse>('/api/v1/auth/signup', {
       method: 'POST', body: JSON.stringify(data),
     }),
   login: (data: LoginRequest) =>
-    request<AuthResponse>('/api/v1/auth/login', {
+    rawFetch<AuthResponse>('/api/v1/auth/login', {
       method: 'POST', body: JSON.stringify(data),
     }),
   refresh: (refreshToken: string) =>
-    request<AuthResponse>('/api/v1/auth/refresh', {
+    rawFetch<AuthResponse>('/api/v1/auth/refresh', {
       method: 'POST', body: JSON.stringify({ refreshToken }),
     }),
   logout: (refreshToken: string) =>
-    request<void>('/api/v1/auth/logout', {
+    rawFetch<void>('/api/v1/auth/logout', {
       method: 'POST', body: JSON.stringify({ refreshToken }),
     }),
 }
@@ -75,6 +108,10 @@ export const analysisApi = {
     }),
   getResult: (id: number) =>
     request<AnalysisResultResponse>(`/api/v1/analysis/results/${id}`),
+  history: (page = 0, size = 20) =>
+    request<PageResponse<AnalysisResultResponse>>(
+      `/api/v1/analysis/history?page=${page}&size=${size}`,
+    ),
 }
 
 /* ── Welfare ── */

@@ -6,7 +6,11 @@ import com.finfive.crisfin.domain.user.User;
 import com.finfive.crisfin.global.response.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -45,6 +49,22 @@ public class AnalysisController {
         Long userId = extractUserId(userDetails);
         AnalysisResultResponse response = analysisService.recommend(request, userId);
         return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    /**
+     * Returns paginated analysis history for the authenticated user.
+     */
+    @GetMapping("/history")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Page<AnalysisResultResponse>>> history(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        Long userId = extractUserId(userDetails);
+        Page<AnalysisResultResponse> result = analysisService.history(
+                userId, PageRequest.of(page, size, Sort.by("createdAt").descending()));
+        return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
     /**

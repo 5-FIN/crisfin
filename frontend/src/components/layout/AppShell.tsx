@@ -14,7 +14,7 @@ const NAV = [
   { href: '/payments',  icon: CreditCard,      label: '납부 관리', badge: '!' },
   { href: '/benefits',  icon: Gift,             label: '혜택 매처' },
   { href: '/tasks',     icon: CheckSquare,      label: '액션 체크리스트' },
-  { href: '/history',   icon: History,          label: '히스토리', disabled: true },
+  { href: '/history',   icon: History,          label: '히스토리' },
   { href: '/settings',  icon: Settings,         label: '설정',     disabled: true },
 ]
 

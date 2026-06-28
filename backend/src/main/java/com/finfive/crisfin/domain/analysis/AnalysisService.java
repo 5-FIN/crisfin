@@ -18,6 +18,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.util.Collections;
 import java.util.Map;
 
@@ -113,6 +116,15 @@ public class AnalysisService {
 
         // Step 10: build response DTO
         return toResponse(saved, resultNode);
+    }
+
+    /**
+     * Returns paginated analysis history for the given user.
+     */
+    @Transactional(readOnly = true)
+    public Page<AnalysisResultResponse> history(Long userId, Pageable pageable) {
+        return analysisResultRepository.findByUserId(userId, pageable)
+                .map(r -> toResponse(r, objectMapper.valueToTree(r.getResultJson())));
     }
 
     /**
