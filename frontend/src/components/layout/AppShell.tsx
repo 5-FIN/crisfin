@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -91,10 +91,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const router   = useRouter()
   const [open, setOpen] = useState(false)
 
-  const analysis = typeof window !== 'undefined' ? analysisStore.load() : null
-  const crisisLabel = analysis
-    ? CRISIS_LABELS[analysis.crisisType as string] ?? analysis.crisisType
-    : null
+  // localStorage는 마운트 이후에만 읽어 SSR/CSR 하이드레이션 불일치를 방지한다.
+  const [crisisLabel, setCrisisLabel] = useState<string | null>(null)
+  useEffect(() => {
+    const analysis = analysisStore.load()
+    setCrisisLabel(
+      analysis ? (CRISIS_LABELS[analysis.crisisType as string] ?? analysis.crisisType) : null,
+    )
+  }, [pathname])
 
   function handleLogout() {
     tokenStore.clear()
