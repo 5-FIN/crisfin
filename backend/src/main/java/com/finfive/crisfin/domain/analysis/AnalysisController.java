@@ -2,7 +2,11 @@ package com.finfive.crisfin.domain.analysis;
 
 import com.finfive.crisfin.domain.analysis.dto.AnalysisRequest;
 import com.finfive.crisfin.domain.analysis.dto.AnalysisResultResponse;
+import com.finfive.crisfin.domain.analysis.dto.ReinferRequest;
+import com.finfive.crisfin.domain.payment.PaymentService;
 import com.finfive.crisfin.domain.user.User;
+import com.finfive.crisfin.global.exception.CrisfinException;
+import com.finfive.crisfin.global.exception.ErrorCode;
 import com.finfive.crisfin.global.response.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,16 +33,15 @@ import org.springframework.web.bind.annotation.*;
 public class AnalysisController {
 
     private final AnalysisService analysisService;
+    private final PaymentService paymentService;
 
     /**
-     * Triggers an AI analysis for the provided crisis scenario.
-     *
-     * <p>If the request is authenticated the user's ID is extracted from the
-     * {@link UserDetails} principal (cast to {@link User} which implements
-     * {@code UserDetails}). Anonymous callers pass {@code null} as the user ID.</p>
+     * Triggers an AI analysis for the provided crisis scenario. This is a paid endpoint:
+     * unauthenticated callers receive 401 and authenticated callers without an active
+     * entitlement receive 402 ({@code PAYMENT_REQUIRED}).
      *
      * @param request     validated analysis request body
-     * @param userDetails Spring Security principal, {@code null} for anonymous callers
+     * @param userDetails Spring Security principal
      * @return {@link ApiResponse} wrapping the analysis result
      */
     @PostMapping("/recommend")
@@ -46,8 +49,24 @@ public class AnalysisController {
             @Valid @RequestBody AnalysisRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
 
-        Long userId = extractUserId(userDetails);
+        Long userId = requirePaidUser(userDetails);
         AnalysisResultResponse response = analysisService.recommend(request, userId);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    /**
+     * Re-runs a personalised analysis from an existing result. Paid + authenticated, same as
+     * {@code /recommend}.
+     */
+    @PostMapping("/{id}/reinfer")
+    public ResponseEntity<ApiResponse<AnalysisResultResponse>> reinfer(
+            @PathVariable Long id,
+            @RequestBody(required = false) ReinferRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        Long userId = requirePaidUser(userDetails);
+        ReinferRequest body = (request != null) ? request : new ReinferRequest();
+        AnalysisResultResponse response = analysisService.reinfer(id, body, userId);
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
@@ -97,5 +116,22 @@ public class AnalysisController {
             return user.getId();
         }
         return null;
+    }
+
+    /**
+     * Resolves the authenticated user and enforces the paywall.
+     *
+     * @throws CrisfinException 401 {@code UNAUTHORIZED} when anonymous,
+     *                          402 {@code PAYMENT_REQUIRED} when no active entitlement
+     */
+    private Long requirePaidUser(UserDetails userDetails) {
+        Long userId = extractUserId(userDetails);
+        if (userId == null) {
+            throw new CrisfinException(ErrorCode.UNAUTHORIZED, "로그인이 필요합니다.");
+        }
+        if (!paymentService.hasActiveEntitlement(userId)) {
+            throw new CrisfinException(ErrorCode.PAYMENT_REQUIRED, "분석 이용권이 필요합니다.");
+        }
+        return userId;
     }
 }

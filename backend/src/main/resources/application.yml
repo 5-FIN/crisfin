@@ -56,6 +56,10 @@ welfare:
   api:
     key: ${PUBLIC_DATA_API_KEY:}
     base-url: https://api.odcloud.kr/api/15090532/v1
+# Paid analysis (mock payment) — price in KRW, immediate entitlement on confirm.
+payment:
+  price: ${PAYMENT_PRICE:9900}
+  plan: ${PAYMENT_PLAN:STANDARD}
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
