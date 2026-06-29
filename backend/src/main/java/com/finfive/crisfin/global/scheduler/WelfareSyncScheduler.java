@@ -1,5 +1,6 @@
 package com.finfive.crisfin.global.scheduler;
 
+import com.finfive.crisfin.domain.recommendation.rag.PolicyIndexingService;
 import com.finfive.crisfin.domain.welfare.WelfareBenefit;
 import com.finfive.crisfin.domain.welfare.WelfareBenefitRepository;
 import com.finfive.crisfin.infra.openapi.WelfareApiClient;
@@ -9,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -31,6 +31,7 @@ public class WelfareSyncScheduler {
 
     private final WelfareApiClient welfareApiClient;
     private final WelfareBenefitRepository welfareBenefitRepository;
+    private final PolicyIndexingService policyIndexingService;
 
     /**
      * Synchronises welfare benefits from the external API.
@@ -43,7 +44,6 @@ public class WelfareSyncScheduler {
      * </ul>
      */
     @Scheduled(cron = "0 0 3 * * *")
-    @Transactional
     public void syncWelfareBenefits() {
         // Guard: skip when no API key is configured (local / CI environments)
         if (!welfareApiClient.isConfigured()) {
@@ -71,7 +71,7 @@ public class WelfareSyncScheduler {
                         .orElse(null);
 
                 if (entity != null) {
-                    // Update existing record — JPA dirty-checking will flush on commit
+                    // Update existing record — persisted explicitly via saveAll below
                     entity.update(
                             item.getSrvNm(),
                             item.getSvcSumry(),
@@ -106,6 +106,16 @@ public class WelfareSyncScheduler {
             welfareBenefitRepository.saveAll(toSave);
 
             log.info("[WelfareSyncScheduler] Welfare sync complete — {} record(s) processed.", toSave.size());
+
+            // Rebuild the RAG policy index from the freshly-synced data. Isolated in its own
+            // try/catch so an embedding/index failure can never break the welfare sync.
+            try {
+                int indexed = policyIndexingService.reindexAll();
+                log.info("[WelfareSyncScheduler] Policy reindex complete — {} chunk(s).", indexed);
+            } catch (Exception ragEx) {
+                log.error("[WelfareSyncScheduler] Policy reindex failed (welfare sync unaffected): {}",
+                        ragEx.getMessage(), ragEx);
+            }
 
         } catch (Exception ex) {
             // Log but do NOT re-throw: prevents the @Scheduled executor from suppressing

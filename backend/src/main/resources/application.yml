@@ -44,6 +44,14 @@ llm:
   openai:
     api-key: ${OPENAI_API_KEY:}
     model: gpt-4o
+# Hybrid RAG embeddings — disabled automatically when the API key is blank.
+embedding:
+  openai:
+    api-key: ${OPENAI_API_KEY:}
+    model: text-embedding-3-small
+    dimensions: 1536
+  rag:
+    top-k: ${RAG_TOP_K:5}
 welfare:
   api:
     key: ${PUBLIC_DATA_API_KEY:}

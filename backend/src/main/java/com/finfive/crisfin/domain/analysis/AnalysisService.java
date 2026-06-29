@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.finfive.crisfin.domain.analysis.dto.AnalysisRequest;
 import com.finfive.crisfin.domain.analysis.dto.AnalysisResultResponse;
 import com.finfive.crisfin.domain.crisis.CrisisType;
+import com.finfive.crisfin.domain.recommendation.rag.PolicyRetrievalService;
+import com.finfive.crisfin.domain.recommendation.rag.RetrievedPolicy;
 import com.finfive.crisfin.global.exception.CrisfinException;
 import com.finfive.crisfin.global.exception.ErrorCode;
 import com.finfive.crisfin.global.filter.LlmResponseValidator;
@@ -15,6 +17,7 @@ import com.finfive.crisfin.infra.llm.dto.LlmRequest;
 import com.finfive.crisfin.infra.llm.dto.LlmResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +25,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -41,7 +45,12 @@ public class AnalysisService {
     private final PromptInjectionDetector promptInjectionDetector;
     private final LlmResponseValidator llmResponseValidator;
     private final SystemPromptProvider systemPromptProvider;
+    private final PolicyRetrievalService policyRetrievalService;
     private final ObjectMapper objectMapper;
+
+    /** Number of policy chunks to retrieve for RAG grounding. */
+    @Value("${embedding.rag.top-k:5}")
+    private int ragTopK;
 
     /**
      * Runs the full analysis pipeline for the given request.
@@ -168,13 +177,42 @@ public class AnalysisService {
             myDataJson = "{}";
         }
 
-        return String.format(
+        String base = String.format(
                 "위기 유형: %s (%s)\n\n상황 설명: %s\n\n재무 데이터(익명화됨): %s",
                 crisisType.name(),
                 crisisType.getLabel(),
                 situationDescription,
                 myDataJson
         );
+
+        // Hybrid RAG: append retrieved policy context as grounding only. When RAG is
+        // disabled or finds nothing, the block is omitted and the message is unchanged.
+        String ragBlock = buildRagBlock(crisisType, situationDescription);
+        return ragBlock.isEmpty() ? base : base + "\n\n" + ragBlock;
+    }
+
+    /**
+     * Builds the RAG grounding block from the policy vector store. The retrieved policies
+     * are provided strictly as evidence — the model must NOT generate amounts from them
+     * (amount estimation stays in the rule engine).
+     *
+     * @return the formatted block, or an empty string when there is nothing to add
+     */
+    private String buildRagBlock(CrisisType crisisType, String situationDescription) {
+        List<RetrievedPolicy> policies =
+                policyRetrievalService.retrieve(crisisType, situationDescription, ragTopK);
+        if (policies.isEmpty()) {
+            return "";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("[관련 정책 발췌(RAG) — 근거로만 사용, 금액 생성 금지]\n");
+        int idx = 1;
+        for (RetrievedPolicy p : policies) {
+            sb.append(idx++).append(". (").append(p.sourceType()).append(") ")
+              .append(p.content().replaceAll("\\s+", " ").trim()).append('\n');
+        }
+        return sb.toString().trim();
     }
 
     private AnalysisResultResponse toResponse(AnalysisResult entity, JsonNode resultNode) {
