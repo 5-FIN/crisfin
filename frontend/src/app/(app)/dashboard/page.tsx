@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowRight, TrendingUp, PauseCircle, DollarSign, CheckSquare } from 'lucide-react'
-import { analysisStore, fmt, CRISIS_LABELS, CRISIS_EMOJI, priorityBadge } from '@/lib/utils'
+import { analysisStore, fmt, fmtAmount, CRISIS_LABELS, CRISIS_EMOJI, priorityBadge } from '@/lib/utils'
 import type { AnalysisResultResponse } from '@/lib/types'
 
 export default function DashboardPage() {
@@ -29,7 +29,7 @@ export default function DashboardPage() {
   const { summary, todos, receivable, holdable, actions } = result
 
   /* Runway: 받을돈 최소 / (holdable 없이 유예 가정 후 지출) — 간단 추산 */
-  const runwayDays = Math.min(90, Math.round(summary.totalReceivableMin / 300_000 * 7) + 14)
+  const runwayDays = Math.min(90, Math.round((summary.totalReceivableMin ?? 0) / 300_000 * 7) + 14)
 
   const quadrants = [
     {
@@ -40,8 +40,8 @@ export default function DashboardPage() {
     },
     {
       href: '/benefits', icon: DollarSign, label: '받을 돈',
-      value: `${fmt(summary.totalReceivableMin)}~`,
-      sub: `최대 ${fmt(summary.totalReceivableMax)}`,
+      value: `${fmtAmount(summary.totalReceivableMin, '0원')}~`,
+      sub: `최대 ${fmtAmount(summary.totalReceivableMax, '0원')}`,
       color: '#10B981', bg: '#ECFDF5',
     },
     {
@@ -156,17 +156,24 @@ export default function DashboardPage() {
             </Link>
           </div>
           <div className="space-y-3">
-            {receivable.slice(0, 3).map((item, i) => (
-              <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-[#F8FAFC]">
-                <div className="min-w-0 mr-3">
-                  <div className="text-sm font-medium text-[#1E293B] truncate">{item.name}</div>
-                  <div className="text-xs text-[#94A3B8]">{item.source}</div>
+            {receivable.slice(0, 3).map((item, i) => {
+              const needsInput = item.status === 'NEEDS_MORE_INPUT' || item.estimatedMin == null
+              return (
+                <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-[#F8FAFC]">
+                  <div className="min-w-0 mr-3">
+                    <div className="text-sm font-medium text-[#1E293B] truncate">{item.name}</div>
+                    <div className="text-xs text-[#94A3B8]">{item.source}</div>
+                  </div>
+                  {needsInput ? (
+                    <div className="text-xs text-[#EA580C] flex-shrink-0">추가입력 필요</div>
+                  ) : (
+                    <div className="text-sm font-bold font-mono text-[#10B981] flex-shrink-0">
+                      {fmt(item.estimatedMin as number)}+
+                    </div>
+                  )}
                 </div>
-                <div className="text-sm font-bold font-mono text-[#10B981] flex-shrink-0">
-                  {fmt(item.estimatedMin)}+
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       </div>

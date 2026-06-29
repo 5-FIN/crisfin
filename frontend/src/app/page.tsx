@@ -30,10 +30,10 @@ export default function LandingPage() {
               로그인
             </Link>
             <Link
-              href="/diagnosis"
+              href="/signup"
               className="px-4 py-2 bg-[#2563EB] text-white text-sm font-medium rounded-lg hover:bg-[#1D4ED8] transition-colors"
             >
-              무료 시작하기
+              시작하기
             </Link>
           </div>
         </div>
@@ -55,10 +55,10 @@ export default function LandingPage() {
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
-            href="/diagnosis"
+            href="/signup"
             className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#2563EB] text-white font-semibold rounded-xl hover:bg-[#1D4ED8] transition-colors text-base"
           >
-            3분 무료 분석 시작 <ArrowRight size={18} />
+            3분 만에 분석 시작 <ArrowRight size={18} />
           </Link>
           <Link
             href="/login"
@@ -150,13 +150,13 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-8 py-12 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-white">
             <div className="text-xl font-bold mb-2">지금 바로 시작하세요</div>
-            <div className="text-white/80 text-sm">로그인 없이 3분 무료 분석 가능합니다.</div>
+            <div className="text-white/80 text-sm">가입 후 3분 만에 위기 금융 분석을 받아보세요.</div>
           </div>
           <Link
-            href="/diagnosis"
+            href="/signup"
             className="flex-shrink-0 px-8 py-3 bg-white text-[#2563EB] font-bold rounded-xl hover:bg-[#EFF6FF] transition-colors flex items-center gap-2"
           >
-            무료 분석 시작 <ArrowRight size={16} />
+            지금 시작하기 <ArrowRight size={16} />
           </Link>
         </div>
       </section>

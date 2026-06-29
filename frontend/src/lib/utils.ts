@@ -12,11 +12,9 @@ export function fmt(n: number): string {
   return `${n.toLocaleString()}원`
 }
 
-/** D-Day 색상 */
-export function dDayColor(days: number): string {
-  if (days <= 5) return '#F59E0B'
-  if (days <= 14) return '#F97316'
-  return '#64748B'
+/** null 가능 금액 포맷 (rule 엔진 미산정 시 fallback) */
+export function fmtAmount(n: number | null | undefined, fallback = '—'): string {
+  return n == null ? fallback : fmt(n)
 }
 
 /** 우선순위 배지 */
@@ -108,6 +106,18 @@ export const analysisStore = {
     } catch { return null }
   },
   clear: () => localStorage.removeItem('cf_analysis'),
+}
+
+/** 결제/로그인 후 재실행할 보류 분석 요청 localStorage 헬퍼 */
+export const pendingAnalysisStore = {
+  save: (req: unknown) => localStorage.setItem('cf_pending_analysis', JSON.stringify(req)),
+  load: () => {
+    try {
+      const raw = localStorage.getItem('cf_pending_analysis')
+      return raw ? JSON.parse(raw) : null
+    } catch { return null }
+  },
+  clear: () => localStorage.removeItem('cf_pending_analysis'),
 }
 
 /** 태스크 완료 상태 localStorage 헬퍼 */

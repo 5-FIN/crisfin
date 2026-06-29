@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, CreditCard, Gift, CheckSquare,
-  History, Settings, Menu, X, Bell, LogOut, ChevronRight,
+  History, Menu, LogOut, ChevronRight,
 } from 'lucide-react'
 import { cn, tokenStore, analysisStore, CRISIS_LABELS } from '@/lib/utils'
 
@@ -15,7 +15,6 @@ const NAV = [
   { href: '/benefits',  icon: Gift,             label: '혜택 매처' },
   { href: '/tasks',     icon: CheckSquare,      label: '액션 체크리스트' },
   { href: '/history',   icon: History,          label: '히스토리' },
-  { href: '/settings',  icon: Settings,         label: '설정',     disabled: true },
 ]
 
 function SidebarNav({
@@ -47,20 +46,8 @@ function SidebarNav({
 
       {/* 네비게이션 */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {NAV.map(({ href, icon: Icon, label, badge, disabled }) => {
+        {NAV.map(({ href, icon: Icon, label, badge }) => {
           const active = pathname === href
-          if (disabled) {
-            return (
-              <span
-                key={href}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#CBD5E1] cursor-not-allowed"
-              >
-                <Icon size={18} />
-                <span className="flex-1">{label}</span>
-                <span className="text-[10px] border border-[#E2E8F0] rounded px-1">준비중</span>
-              </span>
-            )
-          }
           return (
             <Link
               key={href}
@@ -143,9 +130,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <Menu size={20} />
           </button>
           <div className="flex-1" />
-          <button className="p-1.5 rounded-lg hover:bg-[#F1F5F9] text-[#475569] relative">
-            <Bell size={18} />
-          </button>
           <Link
             href="/"
             className="flex items-center gap-1 text-xs text-[#64748B] hover:text-[#2563EB] transition-colors"

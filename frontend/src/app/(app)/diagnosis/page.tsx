@@ -4,8 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CheckCircle, Loader2 } from 'lucide-react'
 import { analysisApi, myDataApi } from '@/lib/api'
-import { analysisStore, buildSituationDescription, jobToPersona, CRISIS_KEY_MAP } from '@/lib/utils'
-import type { CrisisType, PersonaType } from '@/lib/types'
+import { analysisStore, pendingAnalysisStore, buildSituationDescription, jobToPersona, CRISIS_KEY_MAP } from '@/lib/utils'
+import type { AnalysisRequest, ApplicantProfile, CrisisType, PersonaType } from '@/lib/types'
 
 type Step = 1 | 2 | 3 | 4
 
@@ -31,47 +31,68 @@ export default function DiagnosisPage() {
   const router = useRouter()
   const [step, setStep] = useState<Step>(1)
   const [crisis, setCrisis]  = useState('')
-  const [form, setForm] = useState({ job: 'employed', income: '', household: '1', expenses: '' })
+  const [form, setForm] = useState({ job: 'employed', income: '', household: '1' })
   const [detail, setDetail] = useState('')
   const [loadingMsg, setLoadingMsg] = useState('')
   const [error, setError] = useState('')
 
   const pick = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
 
+  /** 폼값 → applicantProfile (rule 엔진 입력). 입력된 값만 포함. */
+  function buildApplicantProfile(): ApplicantProfile {
+    const householdSize = parseInt(form.household, 10)   // '5이상' → 5
+    const incomeManwon  = Number(form.income)            // 만원 단위 입력
+    return {
+      ...(Number.isFinite(householdSize) ? { householdSize } : {}),
+      ...(form.income !== '' && Number.isFinite(incomeManwon)
+        ? { monthlyIncome: incomeManwon * 10_000 }       // 만원 → 원
+        : {}),
+    }
+  }
+
   async function runAnalysis() {
     setStep(4)
     setError('')
-    try {
-      const crisisType = CRISIS_KEY_MAP[crisis] as CrisisType
-      const persona    = jobToPersona(form.job) as PersonaType
 
+    const crisisType = CRISIS_KEY_MAP[crisis] as CrisisType
+    const persona    = jobToPersona(form.job) as PersonaType
+    const situation  = buildSituationDescription({
+      crisisType,
+      job: JOB_OPTIONS.find(o => o.value === form.job)?.label ?? form.job,
+      income: form.income,
+      household: form.household,
+      detail,
+    })
+    const applicantProfile = buildApplicantProfile()
+    const req: AnalysisRequest = {
+      crisisType,
+      situationDescription: situation,
+      ...(Object.keys(applicantProfile).length > 0 ? { applicantProfile } : {}),
+    }
+
+    try {
       setLoadingMsg('재정 데이터를 불러오는 중...')
-      let filteredMyData: Record<string, unknown> | undefined
       try {
-        filteredMyData = await myDataApi.filter(persona, FIELD_KEYS)
+        req.filteredMyData = await myDataApi.filter(persona, FIELD_KEYS)
       } catch {
         // mydata 실패해도 분석은 계속
       }
 
       setLoadingMsg('AI가 상황을 분석하는 중...')
-      const situation = buildSituationDescription({
-        crisisType,
-        job: JOB_OPTIONS.find(o => o.value === form.job)?.label ?? form.job,
-        income: form.income,
-        household: form.household,
-        detail,
-      })
-
-      const result = await analysisApi.recommend({
-        crisisType,
-        situationDescription: situation,
-        filteredMyData,
-      })
+      const result = await analysisApi.recommend(req)
 
       setLoadingMsg('결과를 정리하는 중...')
       analysisStore.save(result)
+      pendingAnalysisStore.clear()
       router.push('/dashboard')
     } catch (err) {
+      const status = (err as { status?: number }).status
+      // 유료: 미로그인 → 로그인, 미결제 → 결제(페이월). 요청을 보관해 결제/로그인 후 즉시 재실행.
+      if (status === 401 || status === 402) {
+        pendingAnalysisStore.save(req)
+        router.push(status === 401 ? '/login' : '/unlock')
+        return
+      }
       setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
       setStep(3)
     }
@@ -151,12 +172,6 @@ export default function DiagnosisPage() {
                   {['1', '2', '3', '4', '5이상'].map(v => <option key={v} value={v}>{v}인</option>)}
                 </select>
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[#1E293B] mb-1.5">월 고정 지출 (만원, 선택)</label>
-              <input type="number" value={form.expenses} onChange={e => pick('expenses', e.target.value)}
-                placeholder="예: 200"
-                className="w-full px-3.5 py-2.5 rounded-lg border border-[#E2E8F0] text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] transition" />
             </div>
           </div>
           <div className="flex gap-3 mt-8">

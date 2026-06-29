@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { authApi } from '@/lib/api'
 import { tokenStore } from '@/lib/utils'
+import { resumePendingAnalysis } from '@/lib/resumeAnalysis'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -19,7 +20,9 @@ export default function LoginPage() {
     try {
       const res = await authApi.login(form)
       tokenStore.set(res.accessToken, res.refreshToken)
-      router.push('/dashboard')
+      // 보류된 분석이 있으면 즉시 재실행(결제 필요 시 /unlock으로), 없으면 대시보드
+      const resumed = await resumePendingAnalysis(router.push)
+      if (!resumed) router.push('/dashboard')
     } catch (err) {
       setError(err instanceof Error ? err.message : '로그인 중 오류가 발생했습니다.')
     } finally {
@@ -77,11 +80,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-4 pt-4 border-t border-[#E2E8F0] text-center">
-            <Link href="/diagnosis" className="text-xs text-[#64748B] hover:text-[#2563EB] transition-colors">
-              로그인 없이 분석 시작하기 →
-            </Link>
-          </div>
         </div>
 
         <p className="text-center text-sm text-[#64748B] mt-4">
