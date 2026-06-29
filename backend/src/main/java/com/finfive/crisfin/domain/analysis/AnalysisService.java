@@ -7,12 +7,9 @@ import com.finfive.crisfin.domain.analysis.dto.AnalysisResultResponse;
 import com.finfive.crisfin.domain.analysis.dto.ApplicantProfile;
 import com.finfive.crisfin.domain.analysis.dto.ReinferRequest;
 import com.finfive.crisfin.domain.crisis.CrisisType;
+import com.finfive.crisfin.domain.recommendation.ResultAssembler;
 import com.finfive.crisfin.domain.recommendation.rag.PolicyRetrievalService;
 import com.finfive.crisfin.domain.recommendation.rag.RetrievedPolicy;
-import com.finfive.crisfin.domain.recommendation.rule.BenefitRuleEngine;
-import com.finfive.crisfin.domain.recommendation.rule.RuleEvaluation;
-import com.finfive.crisfin.domain.recommendation.timeline.TimelineBuilder;
-import com.finfive.crisfin.domain.recommendation.timeline.TimelinePhase;
 import com.finfive.crisfin.global.exception.CrisfinException;
 import com.finfive.crisfin.global.exception.ErrorCode;
 import com.finfive.crisfin.global.filter.LlmResponseValidator;
@@ -32,7 +29,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -54,8 +50,7 @@ public class AnalysisService {
     private final LlmResponseValidator llmResponseValidator;
     private final SystemPromptProvider systemPromptProvider;
     private final PolicyRetrievalService policyRetrievalService;
-    private final BenefitRuleEngine benefitRuleEngine;
-    private final TimelineBuilder timelineBuilder;
+    private final ResultAssembler resultAssembler;
     private final ObjectMapper objectMapper;
 
     /** Number of policy chunks to retrieve for RAG grounding. */
@@ -162,7 +157,7 @@ public class AnalysisService {
 
         // Rule engine owns receivable amounts / status / needsMoreInput / summary totals;
         // timeline is built (urgency-sorted) from the LLM strategy. LLM amounts are discarded.
-        enrichWithRuleEngine(resultMap, llmNode, crisisType, applicantProfile);
+        resultAssembler.enrich(resultMap, llmNode, crisisType, applicantProfile);
 
         AnalysisResult saved = analysisResultRepository.save(
                 AnalysisResult.builder()
@@ -180,35 +175,6 @@ public class AnalysisService {
         log.info("[AnalysisService] Analysis saved with id={}, provider={}", saved.getId(), saved.getLlmProvider());
 
         return toResponse(saved, objectMapper.valueToTree(resultMap));
-    }
-
-    /**
-     * Overlays rule-engine output onto the LLM result map: authoritative {@code receivable},
-     * {@code needsMoreInput}, {@code summary.totalReceivableMin/Max}, and a 30-day
-     * urgency-sorted {@code timeline} derived from the LLM strategy.
-     */
-    @SuppressWarnings("unchecked")
-    private void enrichWithRuleEngine(Map<String, Object> resultMap,
-                                      JsonNode llmNode,
-                                      CrisisType crisisType,
-                                      ApplicantProfile applicantProfile) {
-        RuleEvaluation evaluation = benefitRuleEngine.evaluate(crisisType, applicantProfile);
-
-        resultMap.put("receivable",
-                objectMapper.convertValue(evaluation.receivables(), List.class));
-        resultMap.put("needsMoreInput",
-                objectMapper.convertValue(evaluation.needsMoreInput(), List.class));
-
-        List<TimelinePhase> timeline = timelineBuilder.build(llmNode);
-        resultMap.put("timeline", objectMapper.convertValue(timeline, List.class));
-
-        Object summaryObj = resultMap.get("summary");
-        Map<String, Object> summary = (summaryObj instanceof Map)
-                ? (Map<String, Object>) summaryObj
-                : new LinkedHashMap<>();
-        summary.put("totalReceivableMin", evaluation.totalReceivableMin());
-        summary.put("totalReceivableMax", evaluation.totalReceivableMax());
-        resultMap.put("summary", summary);
     }
 
     private Map<String, Object> toProfileMap(ApplicantProfile profile) {

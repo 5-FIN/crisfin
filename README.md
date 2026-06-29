@@ -38,10 +38,12 @@
 
 - Java 21 이상
 - Gradle 8.x
-- PostgreSQL 16 이상 (하이브리드 RAG 사용 시 `pgvector` 확장 필요 — V5 마이그레이션이 `CREATE EXTENSION vector` 실행)
+- PostgreSQL 16 이상 (하이브리드 RAG 사용 시 `pgvector` 확장 권장 — 없으면 V5 마이그레이션이 RAG 테이블을 건너뛰고 앱은 정상 기동)
 - (선택) Docker & Docker Compose
 
-> **하이브리드 RAG (정책 검색):** LLM 전략 생성 단계에 OpenAI 임베딩 + pgvector 기반 정책 RAG를 얹습니다. 자격·금액 산정은 rule 엔진이 담당하며 RAG는 "근거"만 보강합니다(금액 생성 금지). `OPENAI_API_KEY` 환경변수가 없으면 RAG는 자동 비활성화되어 기존 동작 그대로 작동합니다.
+> **하이브리드 RAG (정책 검색):** LLM 전략 생성 단계에 OpenAI 임베딩 + pgvector 기반 정책 RAG를 얹습니다. 자격·금액 산정은 rule 엔진이 담당하며 RAG는 "근거"만 보강합니다(금액 생성 금지). `OPENAI_API_KEY`가 없거나 `pgvector` 확장이 설치돼 있지 않으면 RAG는 자동 비활성화되며 나머지 기능은 그대로 동작합니다.
+
+> **유료 분석(결제 게이팅):** `POST /api/v1/analysis/recommend`는 로그인 + 활성 이용권이 필요합니다(미로그인 401, 미결제 402). `POST /api/v1/payments/checkout` → `confirm`(mock 결제)로 이용권을 즉시 활성화합니다. 가격은 `PAYMENT_PRICE`(기본 9900) 환경변수로 설정합니다.
 
 ### DB 설정
 
