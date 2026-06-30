@@ -9,8 +9,15 @@ on:
     branches:
       - develop
 
+# PR에 커버리지 코멘트를 달기 위해 쓰기 권한 필요
+permissions:
+  contents: read
+  pull-requests: write
+  actions: read
+
 jobs:
-  build-and-test:
+  # ── 백엔드: 빌드 + 테스트 + JaCoCo 커버리지 ──
+  backend:
     runs-on: ubuntu-latest
 
     env:
@@ -45,6 +52,67 @@ jobs:
         run: ./gradlew build -x test --no-daemon
         working-directory: backend
 
-      - name: Test
-        run: ./gradlew test --no-daemon
+      # test → (finalizedBy) jacocoTestReport 로 XML 리포트 생성
+      - name: Test + JaCoCo report
+        run: ./gradlew test jacocoTestReport --no-daemon
         working-directory: backend
+
+      # PR에 백엔드 커버리지 코멘트 (XML 기본 경로 참조)
+      - name: JaCoCo coverage comment
+        if: github.event_name == 'pull_request'
+        uses: madrapps/jacoco-report@v1.7.1
+        with:
+          paths: ${{ github.workspace }}/backend/build/reports/jacoco/test/jacocoTestReport.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: 'Backend Coverage (JaCoCo)'
+          min-coverage-overall: 0
+          min-coverage-changed-files: 0
+
+      # 리포트 산출물 보관
+      - name: Upload JaCoCo HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: backend/build/reports/jacoco/test/html
+          if-no-files-found: ignore
+
+  # ── 프론트엔드: Vitest + v8 커버리지 ──
+  frontend:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test with coverage
+        run: npm run test:coverage
+
+      # PR에 프론트 커버리지 코멘트 (coverage/coverage-summary.json 참조)
+      - name: Frontend coverage comment
+        if: github.event_name == 'pull_request'
+        uses: davelosert/vitest-coverage-report-action@v2
+        with:
+          working-directory: frontend
+
+      - name: Upload frontend coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage
+          if-no-files-found: ignore
