@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.finfive.crisfin.domain.analysis.dto.ApplicantProfile;
 import com.finfive.crisfin.domain.crisis.CrisisType;
+import com.finfive.crisfin.domain.recommendation.rule.BenefitCriteriaFixtures;
 import com.finfive.crisfin.domain.recommendation.rule.BenefitRuleEngine;
 import com.finfive.crisfin.domain.recommendation.timeline.TimelineBuilder;
 import org.junit.jupiter.api.Test;
@@ -43,7 +44,7 @@ class ResultAssemblerContractTest {
 
     private final ObjectMapper mapper = new ObjectMapper();
     private final ResultAssembler assembler =
-            new ResultAssembler(new BenefitRuleEngine(), new TimelineBuilder(), mapper);
+            new ResultAssembler(new BenefitRuleEngine(BenefitCriteriaFixtures.provider()), new TimelineBuilder(), mapper);
 
     @Test
     @SuppressWarnings("unchecked")
