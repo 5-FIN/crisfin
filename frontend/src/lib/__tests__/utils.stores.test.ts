@@ -10,6 +10,7 @@ import {
   analysisStore,
   pendingAnalysisStore,
   taskStore,
+  myDataSelectionStore,
 } from '@/lib/utils'
 
 describe('fmtAmount', () => {
@@ -206,5 +207,24 @@ describe('taskStore', () => {
     taskStore.toggle(2, 'b')
     expect(taskStore.load(1)).toEqual({ a: true })
     expect(taskStore.load(2)).toEqual({ b: true })
+  })
+})
+
+describe('myDataSelectionStore', () => {
+  beforeEach(() => localStorage.clear())
+
+  it('save/load로 선택 상태를 왕복 저장한다', () => {
+    const sel = { cards: false, loans: true, insurance: true }
+    myDataSelectionStore.save(sel)
+    expect(myDataSelectionStore.load()).toEqual(sel)
+  })
+
+  it('저장된 값이 없으면 null을 반환한다', () => {
+    expect(myDataSelectionStore.load()).toBeNull()
+  })
+
+  it('JSON 파싱 실패 시 null을 안전 반환한다', () => {
+    localStorage.setItem('cf_mydata_selection', 'broken{')
+    expect(myDataSelectionStore.load()).toBeNull()
   })
 })

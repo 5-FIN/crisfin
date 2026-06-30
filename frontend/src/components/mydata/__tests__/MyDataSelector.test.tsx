@@ -11,6 +11,7 @@ vi.mock('@/lib/api', () => ({
 }))
 
 import MyDataSelector, { MYDATA_FIELDS } from '@/components/mydata/MyDataSelector'
+import { myDataSelectionStore } from '@/lib/utils'
 
 const SAMPLE = {
   bankAccounts: [{ bank: '국민', accountType: '입출금', balance: 3_000_000 }],
@@ -23,6 +24,7 @@ const SAMPLE = {
 }
 
 beforeEach(() => {
+  localStorage.clear()   // 선택 상태가 localStorage에 저장되므로 테스트 간 격리
   mockMock.mockReset()
   mockMock.mockResolvedValue(structuredClone(SAMPLE))
 })
@@ -122,5 +124,36 @@ describe('MyDataSelector', () => {
     await waitFor(() => {
       expect(screen.getByText('100만원')).toBeInTheDocument()
     })
+  })
+
+  it('토글 off 상태가 localStorage에 저장되어 재마운트 시 복원된다', async () => {
+    const user = userEvent.setup()
+    const { unmount } = render(<MyDataSelector persona="OFFICE_WORKER" onChange={() => {}} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('상황 요약')).toBeInTheDocument()
+    })
+
+    // 카드(인덱스 1) 토글 off → localStorage에 저장
+    const switches = screen.getAllByRole('button', { name: '' }).filter(
+      b => b.getAttribute('aria-pressed') !== null,
+    )
+    await user.click(switches[1])
+
+    await waitFor(() => {
+      expect(myDataSelectionStore.load()).toMatchObject({ cards: false })
+    })
+
+    // 재마운트 → 저장된 선택(카드 off)이 복원되어 payload에서 cards가 빠진다
+    unmount()
+    const onChange = vi.fn()
+    render(<MyDataSelector persona="OFFICE_WORKER" onChange={onChange} />)
+
+    await waitFor(() => {
+      const last = onChange.mock.calls.at(-1)![0]
+      expect(last).toHaveProperty('loans')   // 데이터 로드 완료 신호
+    })
+    const last = onChange.mock.calls.at(-1)![0]
+    expect(last).not.toHaveProperty('cards')
   })
 })
