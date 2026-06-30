@@ -15,7 +15,6 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
@@ -31,13 +30,14 @@ class GuideServiceTest {
     private GuideService guideService;
 
     private CrisisGuide guideStub() {
-        CrisisGuide guide = mock(CrisisGuide.class);
-        when(guide.getCrisisType()).thenReturn(CrisisType.UNEMPLOYMENT);
-        when(guide.getTitle()).thenReturn("실직 길라잡이");
-        when(guide.getCoachingPrompt()).thenReturn("프롬프트");
-        when(guide.getKeyRules()).thenReturn(List.of("수칙1", "수칙2"));
-        when(guide.getSourceLaws()).thenReturn(List.of("고용보험법"));
-        return guide;
+        // 엔티티는 @Builder 생성자가 있으므로 모킹 대신 실제 객체로 구성한다.
+        return CrisisGuide.builder()
+                .crisisType(CrisisType.UNEMPLOYMENT)
+                .title("실직 길라잡이")
+                .coachingPrompt("프롬프트")
+                .keyRules(List.of("수칙1", "수칙2"))
+                .sourceLaws(List.of("고용보험법"))
+                .build();
     }
 
     @Test
