@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, Shield, Clock, TrendingUp, CheckCircle } from 'lucide-react'
+import { ArrowRight, Shield, Clock, TrendingUp, CheckCircle, BookOpen } from 'lucide-react'
 
 const CRISIS_TYPES = [
   { emoji: '🏥', label: '입원/수술' },
@@ -61,10 +61,10 @@ export default function LandingPage() {
             3분 만에 분석 시작 <ArrowRight size={18} />
           </Link>
           <Link
-            href="/login"
+            href="/guide"
             className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-[#1E293B] font-semibold rounded-xl border-2 border-[#E2E8F0] hover:border-[#2563EB] hover:text-[#2563EB] transition-colors text-base"
           >
-            로그인하고 이어하기
+            <BookOpen size={18} />무료 길라잡이 바로가기
           </Link>
         </div>
       </section>

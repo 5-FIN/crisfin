@@ -82,6 +82,48 @@ export function buildSituationDescription(params: {
   return `[위기 유형] ${label}\n[직업] ${params.job}\n[월 소득] ${params.income}만원\n[가구원 수] ${params.household}인\n[상세 상황] ${params.detail}`
 }
 
+/* ────────────────────────────────────────────────
+   마이데이터 집계
+──────────────────────────────────────────────── */
+
+/** 마이데이터 상황요약 4개 지표 */
+export interface MyDataSummary {
+  /** 고정지출(월): autoTransfers 금액 합 */
+  fixedExpense: number
+  /** 임박결제: cards 이번달 결제예정액(monthlyUsage) 합 */
+  upcomingPayment: number
+  /** 부채 잔금 합 (loans outstandingBalance) */
+  debtOutstanding: number
+  /** 부채 월상환액 합 (loans monthlyPayment) */
+  debtMonthlyPayment: number
+  /** 보험 월보험료 합 (insurance monthlyPremium) */
+  insurancePremium: number
+}
+
+function sumBy(arr: unknown, key: string): number {
+  if (!Array.isArray(arr)) return 0
+  return arr.reduce((acc, item) => {
+    const v = item && typeof item === 'object' ? (item as Record<string, unknown>)[key] : undefined
+    return acc + (typeof v === 'number' ? v : 0)
+  }, 0)
+}
+
+/**
+ * 켜진/수정된 마이데이터로 상황요약 지표를 계산하는 순수함수.
+ * 백엔드 V3 시드 키 기준: autoTransfers[].amount, cards[].monthlyUsage,
+ * loans[].outstandingBalance/monthlyPayment, insurance[].monthlyPremium.
+ */
+export function summarizeMyData(data: Record<string, unknown> | undefined | null): MyDataSummary {
+  const d = data ?? {}
+  return {
+    fixedExpense:       sumBy(d.autoTransfers, 'amount'),
+    upcomingPayment:    sumBy(d.cards, 'monthlyUsage'),
+    debtOutstanding:    sumBy(d.loans, 'outstandingBalance'),
+    debtMonthlyPayment: sumBy(d.loans, 'monthlyPayment'),
+    insurancePremium:   sumBy(d.insurance, 'monthlyPremium'),
+  }
+}
+
 /** localStorage 토큰 헬퍼 */
 export const tokenStore = {
   getAccess: () => (typeof window !== 'undefined' ? localStorage.getItem('cf_access') : null),

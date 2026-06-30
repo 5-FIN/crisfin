@@ -5,11 +5,12 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, CreditCard, Gift, CheckSquare,
-  History, Menu, LogOut, ChevronRight,
+  History, Menu, LogOut, ChevronRight, BookOpen,
 } from 'lucide-react'
 import { cn, tokenStore, analysisStore, CRISIS_LABELS } from '@/lib/utils'
 
 const NAV = [
+  { href: '/guide',     icon: BookOpen,        label: '무료 길라잡이' },
   { href: '/dashboard', icon: LayoutDashboard, label: '대시보드' },
   { href: '/payments',  icon: CreditCard,      label: '납부 관리', badge: '!' },
   { href: '/benefits',  icon: Gift,             label: '혜택 매처' },

@@ -3,11 +3,12 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CheckCircle, Loader2 } from 'lucide-react'
-import { analysisApi, myDataApi } from '@/lib/api'
+import { analysisApi } from '@/lib/api'
 import { analysisStore, pendingAnalysisStore, buildSituationDescription, jobToPersona, CRISIS_KEY_MAP } from '@/lib/utils'
+import MyDataSelector from '@/components/mydata/MyDataSelector'
 import type { AnalysisRequest, ApplicantProfile, CrisisType, PersonaType } from '@/lib/types'
 
-type Step = 1 | 2 | 3 | 4
+type Step = 1 | 2 | 3 | 4 | 5
 
 const CRISIS_OPTIONS = [
   { key: 'hospitalization', label: '입원/수술',     emoji: '🏥', desc: '갑작스러운 입원·수술' },
@@ -25,18 +26,18 @@ const JOB_OPTIONS = [
   { value: 'public',        label: '공무원' },
 ]
 
-const FIELD_KEYS = ['cards', 'loans', 'insurances', 'autoTransfers', 'income']
-
 export default function DiagnosisPage() {
   const router = useRouter()
   const [step, setStep] = useState<Step>(1)
   const [crisis, setCrisis]  = useState('')
   const [form, setForm] = useState({ job: 'employed', income: '', household: '1' })
+  const [filteredMyData, setFilteredMyData] = useState<Record<string, unknown>>({})
   const [detail, setDetail] = useState('')
   const [loadingMsg, setLoadingMsg] = useState('')
   const [error, setError] = useState('')
 
   const pick = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
+  const persona = jobToPersona(form.job) as PersonaType
 
   /** 폼값 → applicantProfile (rule 엔진 입력). 입력된 값만 포함. */
   function buildApplicantProfile(): ApplicantProfile {
@@ -51,11 +52,11 @@ export default function DiagnosisPage() {
   }
 
   async function runAnalysis() {
-    setStep(4)
+    setStep(5)
     setError('')
-
+    // 위기유형·상황요약·신청자 프로필을 조립해 분석 요청(req)을 만든다.
+    // catch에서 결제/로그인 게이팅 시 req를 보관하므로 try 밖에서 선언한다.
     const crisisType = CRISIS_KEY_MAP[crisis] as CrisisType
-    const persona    = jobToPersona(form.job) as PersonaType
     const situation  = buildSituationDescription({
       crisisType,
       job: JOB_OPTIONS.find(o => o.value === form.job)?.label ?? form.job,
@@ -67,17 +68,12 @@ export default function DiagnosisPage() {
     const req: AnalysisRequest = {
       crisisType,
       situationDescription: situation,
+      // 마이데이터 단계(MyDataSelector)에서 켜고 수정한 항목만 전달 (비어있으면 생략)
+      ...(Object.keys(filteredMyData).length > 0 ? { filteredMyData } : {}),
       ...(Object.keys(applicantProfile).length > 0 ? { applicantProfile } : {}),
     }
 
     try {
-      setLoadingMsg('재정 데이터를 불러오는 중...')
-      try {
-        req.filteredMyData = await myDataApi.filter(persona, FIELD_KEYS)
-      } catch {
-        // mydata 실패해도 분석은 계속
-      }
-
       setLoadingMsg('AI가 상황을 분석하는 중...')
       const result = await analysisApi.recommend(req)
 
@@ -94,25 +90,25 @@ export default function DiagnosisPage() {
         return
       }
       setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
-      setStep(3)
+      setStep(4)
     }
   }
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
       {/* 스텝 인디케이터 */}
-      {step < 4 && (
+      {step < 5 && (
         <div className="flex items-center gap-2 mb-10">
-          {([1, 2, 3] as const).map(n => (
+          {([1, 2, 3, 4] as const).map(n => (
             <div key={n} className="flex items-center gap-2">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors
                 ${step > n ? 'bg-[#10B981] text-white' : step === n ? 'bg-[#2563EB] text-white' : 'bg-[#E2E8F0] text-[#94A3B8]'}`}>
                 {step > n ? <CheckCircle size={16} /> : n}
               </div>
               <span className={`text-sm ${step === n ? 'text-[#1E293B] font-medium' : 'text-[#94A3B8]'}`}>
-                {['위기 유형', '재정 정보', '상세 입력'][n - 1]}
+                {['위기 유형', '재정 정보', '마이데이터', '상세 입력'][n - 1]}
               </span>
-              {n < 3 && <div className="w-8 h-px bg-[#E2E8F0]" />}
+              {n < 4 && <div className="w-8 h-px bg-[#E2E8F0]" />}
             </div>
           ))}
         </div>
@@ -187,8 +183,27 @@ export default function DiagnosisPage() {
         </div>
       )}
 
-      {/* Step 3: 상세 상황 */}
+      {/* Step 3: 마이데이터 항목 선택/미리보기/수정 */}
       {step === 3 && (
+        <div>
+          <h2 className="text-2xl font-bold text-[#1E293B] mb-2">마이데이터를 확인해주세요</h2>
+          <p className="text-[#64748B] mb-8">분석에 포함할 항목을 켜고, 핵심 수치를 직접 수정할 수 있습니다.</p>
+          <MyDataSelector persona={persona} onChange={setFilteredMyData} />
+          <div className="flex gap-3 mt-8">
+            <button onClick={() => setStep(2)}
+              className="flex-1 py-3 border border-[#E2E8F0] rounded-xl text-sm font-medium text-[#475569] hover:bg-[#F8FAFC] transition-colors">
+              이전
+            </button>
+            <button onClick={() => setStep(4)}
+              className="flex-1 py-3 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1D4ED8] transition-colors">
+              다음
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 4: 상세 상황 */}
+      {step === 4 && (
         <div>
           <h2 className="text-2xl font-bold text-[#1E293B] mb-2">상황을 자세히 알려주세요</h2>
           <p className="text-[#64748B] mb-8">구체적일수록 더 정확한 분석이 가능합니다.</p>
@@ -205,7 +220,7 @@ export default function DiagnosisPage() {
             <div className="mt-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">{error}</div>
           )}
           <div className="flex gap-3 mt-6">
-            <button onClick={() => setStep(2)}
+            <button onClick={() => setStep(3)}
               className="flex-1 py-3 border border-[#E2E8F0] rounded-xl text-sm font-medium text-[#475569] hover:bg-[#F8FAFC] transition-colors">
               이전
             </button>
@@ -217,8 +232,8 @@ export default function DiagnosisPage() {
         </div>
       )}
 
-      {/* Step 4: AI 분석 중 */}
-      {step === 4 && (
+      {/* Step 5: AI 분석 중 */}
+      {step === 5 && (
         <div className="text-center py-16">
           <div className="w-20 h-20 rounded-full bg-[#EFF6FF] flex items-center justify-center mx-auto mb-6">
             <Loader2 size={36} className="text-[#2563EB] animate-spin" />
