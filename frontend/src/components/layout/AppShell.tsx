@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, CreditCard, Gift, CheckSquare,
-  History, Settings, Menu, X, Bell, LogOut, ChevronRight, BookOpen,
+  History, Menu, LogOut, ChevronRight, BookOpen,
 } from 'lucide-react'
 import { cn, tokenStore, analysisStore, CRISIS_LABELS } from '@/lib/utils'
 
@@ -16,7 +16,6 @@ const NAV = [
   { href: '/benefits',  icon: Gift,             label: '혜택 매처' },
   { href: '/tasks',     icon: CheckSquare,      label: '액션 체크리스트' },
   { href: '/history',   icon: History,          label: '히스토리' },
-  { href: '/settings',  icon: Settings,         label: '설정',     disabled: true },
 ]
 
 function SidebarNav({
@@ -48,20 +47,8 @@ function SidebarNav({
 
       {/* 네비게이션 */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {NAV.map(({ href, icon: Icon, label, badge, disabled }) => {
+        {NAV.map(({ href, icon: Icon, label, badge }) => {
           const active = pathname === href
-          if (disabled) {
-            return (
-              <span
-                key={href}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#CBD5E1] cursor-not-allowed"
-              >
-                <Icon size={18} />
-                <span className="flex-1">{label}</span>
-                <span className="text-[10px] border border-[#E2E8F0] rounded px-1">준비중</span>
-              </span>
-            )
-          }
           return (
             <Link
               key={href}
@@ -105,10 +92,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const router   = useRouter()
   const [open, setOpen] = useState(false)
 
-  const analysis = typeof window !== 'undefined' ? analysisStore.load() : null
-  const crisisLabel = analysis
-    ? CRISIS_LABELS[analysis.crisisType as string] ?? analysis.crisisType
-    : null
+  // localStorage는 마운트 이후에만 읽어 SSR/CSR 하이드레이션 불일치를 방지한다.
+  const [crisisLabel, setCrisisLabel] = useState<string | null>(null)
+  useEffect(() => {
+    const analysis = analysisStore.load()
+    setCrisisLabel(
+      analysis ? (CRISIS_LABELS[analysis.crisisType as string] ?? analysis.crisisType) : null,
+    )
+  }, [pathname])
 
   function handleLogout() {
     tokenStore.clear()
@@ -144,9 +135,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <Menu size={20} />
           </button>
           <div className="flex-1" />
-          <button className="p-1.5 rounded-lg hover:bg-[#F1F5F9] text-[#475569] relative">
-            <Bell size={18} />
-          </button>
           <Link
             href="/"
             className="flex items-center gap-1 text-xs text-[#64748B] hover:text-[#2563EB] transition-colors"

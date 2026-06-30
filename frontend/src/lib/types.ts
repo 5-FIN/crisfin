@@ -81,10 +81,30 @@ export type PersonaType =
 /* ────────────────────────────────────────────────
    분석 (Analysis)
 ──────────────────────────────────────────────── */
+/** rule 엔진 입력용 신청자 프로필 (모두 선택) */
+export interface ApplicantProfile {
+  householdSize?: number
+  monthlyIncome?: number
+  age?: number
+  liquidFinancialAssets?: number
+  employmentInsuranceMonths?: number
+  involuntarySeparation?: boolean
+  annualOutOfPocketMedical?: number
+  careGrade?: number
+}
+
 export interface AnalysisRequest {
   crisisType: CrisisType
   situationDescription: string
   filteredMyData?: Record<string, unknown>
+  applicantProfile?: ApplicantProfile
+}
+
+/** 개인화 재추론 요청 (생략 시 부모 분석에서 상속) */
+export interface ReinferRequest {
+  filteredMyData?: Record<string, unknown>
+  applicantProfile?: ApplicantProfile
+  situationDescription?: string
 }
 
 export interface TodoItem {
@@ -95,10 +115,16 @@ export interface TodoItem {
   reason: string
 }
 
+export type ReceivableStatus = 'ELIGIBLE' | 'NEEDS_MORE_INPUT'
+
 export interface ReceivableItem {
   name: string
-  estimatedMin: number
-  estimatedMax: number
+  /** rule 엔진이 금액을 산정하지 못하면 null */
+  estimatedMin: number | null
+  estimatedMax: number | null
+  status: ReceivableStatus
+  /** 자격/금액 산정 근거 */
+  basis: string
   source: string
   applyUrl: string
   deadline: string
@@ -128,12 +154,39 @@ export interface AnalysisSummary {
   thirtyDayPlan: string
 }
 
+/** 30일 타임라인 항목 (백엔드가 긴급도순 정렬해 제공) */
+export interface TimelineTask {
+  title: string
+  priority: 'HIGH' | 'MED' | 'LOW'
+  dayRange: string
+  urgencyScore: number
+  category: string
+}
+
+/** 30일 버킷 단위 타임라인 구간 */
+export interface TimelinePhase {
+  range: string
+  fromDay: number
+  toDay: number
+  items: TimelineTask[]
+}
+
+/** 추가 입력이 필요한 혜택 안내 */
+export interface NeedsMoreInputItem {
+  benefitName: string
+  missingInputs: string[]
+}
+
 export interface AnalysisResult {
   todos: TodoItem[]
   receivable: ReceivableItem[]
   holdable: HoldableItem[]
   actions: ActionItem[]
   summary: AnalysisSummary
+  /** 백엔드가 긴급도 정렬해 제공하는 30일 타임라인 */
+  timeline?: TimelinePhase[]
+  /** '추가입력 필요' 안내 목록 */
+  needsMoreInput?: NeedsMoreInputItem[]
   disclaimer: string
 }
 
@@ -163,4 +216,18 @@ export interface WelfareBenefitResponse {
   crisisTags: CrisisType[]
   active: boolean
   lastSyncedAt: string | null
+}
+
+/* ────────────────────────────────────────────────
+   결제 / 이용권 (Payments)
+──────────────────────────────────────────────── */
+export interface CheckoutResponse {
+  orderUid: string
+  amount: number
+}
+
+export interface EntitlementResponse {
+  active: boolean
+  plan: string | null
+  expiresAt?: string | null
 }

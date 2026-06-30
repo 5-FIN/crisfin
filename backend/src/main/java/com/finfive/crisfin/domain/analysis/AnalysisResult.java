@@ -46,6 +46,11 @@ public class AnalysisResult {
     @Column(name = "input_mydata_json", columnDefinition = "jsonb")
     private Map<String, Object> inputMyDataJson;
 
+    /** Snapshot of the applicant profile used for rule-engine evaluation (for reinfer inheritance). */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "applicant_profile_json", columnDefinition = "jsonb")
+    private Map<String, Object> applicantProfileJson;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false, columnDefinition = "jsonb")
     private Map<String, Object> resultJson;

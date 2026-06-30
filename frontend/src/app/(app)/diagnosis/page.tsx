@@ -4,9 +4,9 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CheckCircle, Loader2 } from 'lucide-react'
 import { analysisApi } from '@/lib/api'
-import { analysisStore, buildSituationDescription, jobToPersona, CRISIS_KEY_MAP } from '@/lib/utils'
+import { analysisStore, pendingAnalysisStore, buildSituationDescription, jobToPersona, CRISIS_KEY_MAP } from '@/lib/utils'
 import MyDataSelector from '@/components/mydata/MyDataSelector'
-import type { CrisisType, PersonaType } from '@/lib/types'
+import type { AnalysisRequest, ApplicantProfile, CrisisType, PersonaType } from '@/lib/types'
 
 type Step = 1 | 2 | 3 | 4 | 5
 
@@ -30,7 +30,7 @@ export default function DiagnosisPage() {
   const router = useRouter()
   const [step, setStep] = useState<Step>(1)
   const [crisis, setCrisis]  = useState('')
-  const [form, setForm] = useState({ job: 'employed', income: '', household: '1', expenses: '' })
+  const [form, setForm] = useState({ job: 'employed', income: '', household: '1' })
   const [filteredMyData, setFilteredMyData] = useState<Record<string, unknown>>({})
   const [detail, setDetail] = useState('')
   const [loadingMsg, setLoadingMsg] = useState('')
@@ -39,33 +39,56 @@ export default function DiagnosisPage() {
   const pick = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
   const persona = jobToPersona(form.job) as PersonaType
 
+  /** 폼값 → applicantProfile (rule 엔진 입력). 입력된 값만 포함. */
+  function buildApplicantProfile(): ApplicantProfile {
+    const householdSize = parseInt(form.household, 10)   // '5이상' → 5
+    const incomeManwon  = Number(form.income)            // 만원 단위 입력
+    return {
+      ...(Number.isFinite(householdSize) ? { householdSize } : {}),
+      ...(form.income !== '' && Number.isFinite(incomeManwon)
+        ? { monthlyIncome: incomeManwon * 10_000 }       // 만원 → 원
+        : {}),
+    }
+  }
+
   async function runAnalysis() {
     setStep(5)
     setError('')
+    // 위기유형·상황요약·신청자 프로필을 조립해 분석 요청(req)을 만든다.
+    // catch에서 결제/로그인 게이팅 시 req를 보관하므로 try 밖에서 선언한다.
+    const crisisType = CRISIS_KEY_MAP[crisis] as CrisisType
+    const situation  = buildSituationDescription({
+      crisisType,
+      job: JOB_OPTIONS.find(o => o.value === form.job)?.label ?? form.job,
+      income: form.income,
+      household: form.household,
+      detail,
+    })
+    const applicantProfile = buildApplicantProfile()
+    const req: AnalysisRequest = {
+      crisisType,
+      situationDescription: situation,
+      // 마이데이터 단계(MyDataSelector)에서 켜고 수정한 항목만 전달 (비어있으면 생략)
+      ...(Object.keys(filteredMyData).length > 0 ? { filteredMyData } : {}),
+      ...(Object.keys(applicantProfile).length > 0 ? { applicantProfile } : {}),
+    }
+
     try {
-      const crisisType = CRISIS_KEY_MAP[crisis] as CrisisType
-
-      setLoadingMsg('재정 데이터를 정리하는 중...')
-
       setLoadingMsg('AI가 상황을 분석하는 중...')
-      const situation = buildSituationDescription({
-        crisisType,
-        job: JOB_OPTIONS.find(o => o.value === form.job)?.label ?? form.job,
-        income: form.income,
-        household: form.household,
-        detail,
-      })
-
-      const result = await analysisApi.recommend({
-        crisisType,
-        situationDescription: situation,
-        filteredMyData: Object.keys(filteredMyData).length > 0 ? filteredMyData : undefined,
-      })
+      const result = await analysisApi.recommend(req)
 
       setLoadingMsg('결과를 정리하는 중...')
       analysisStore.save(result)
+      pendingAnalysisStore.clear()
       router.push('/dashboard')
     } catch (err) {
+      const status = (err as { status?: number }).status
+      // 유료: 미로그인 → 로그인, 미결제 → 결제(페이월). 요청을 보관해 결제/로그인 후 즉시 재실행.
+      if (status === 401 || status === 402) {
+        pendingAnalysisStore.save(req)
+        router.push(status === 401 ? '/login' : '/unlock')
+        return
+      }
       setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
       setStep(4)
     }
@@ -145,12 +168,6 @@ export default function DiagnosisPage() {
                   {['1', '2', '3', '4', '5이상'].map(v => <option key={v} value={v}>{v}인</option>)}
                 </select>
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[#1E293B] mb-1.5">월 고정 지출 (만원, 선택)</label>
-              <input type="number" value={form.expenses} onChange={e => pick('expenses', e.target.value)}
-                placeholder="예: 200"
-                className="w-full px-3.5 py-2.5 rounded-lg border border-[#E2E8F0] text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] transition" />
             </div>
           </div>
           <div className="flex gap-3 mt-8">

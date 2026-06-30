@@ -7,6 +7,8 @@ import { analysisStore, fmt, priorityBadge } from '@/lib/utils'
 import { welfareApi } from '@/lib/api'
 import type { AnalysisResultResponse, WelfareBenefitResponse, ReceivableItem, CrisisType } from '@/lib/types'
 
+const NEEDS_MORE_INPUT_BADGE = { bg: '#FFF7ED', color: '#EA580C', border: '#FFEDD5' }
+
 type Category = '전체' | '보험/환급' | '복지제도'
 
 export default function BenefitsPage() {
@@ -32,11 +34,11 @@ export default function BenefitsPage() {
 
   if (!analysis) return null
 
-  const { receivable, actions } = analysis.result
+  const { receivable, actions, summary, needsMoreInput } = analysis.result
 
-  /* 총 수령 예상액 */
-  const totalMin = receivable.reduce((s, r) => s + r.estimatedMin, 0)
-  const totalMax = receivable.reduce((s, r) => s + r.estimatedMax, 0)
+  /* 총 수령 예상액 — rule 엔진 합계(summary) 사용 */
+  const totalMin = summary.totalReceivableMin
+  const totalMax = summary.totalReceivableMax
 
   /* 필터링 */
   const filteredReceivable = filter === '복지제도' ? [] : receivable
@@ -79,6 +81,8 @@ export default function BenefitsPage() {
             {filteredReceivable.map((item: ReceivableItem, i) => {
               const key = `recv-${i}`
               const isOpen = expanded === key
+              // 금액 미산정(null) 또는 NEEDS_MORE_INPUT → 금액 대신 '추가입력 필요' 표시
+              const needsInput = item.status === 'NEEDS_MORE_INPUT' || item.estimatedMin == null
               return (
                 <div key={key} className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm overflow-hidden">
                   <button className="w-full p-5 flex items-center gap-4 text-left hover:bg-[#F8FAFC] transition-colors"
@@ -91,14 +95,31 @@ export default function BenefitsPage() {
                       <div className="text-xs text-[#64748B]">{item.source} · 기한: {item.deadline}</div>
                     </div>
                     <div className="text-right flex-shrink-0 mr-2">
-                      <div className="text-lg font-bold font-mono text-[#10B981]">{fmt(item.estimatedMin)}+</div>
-                      <div className="text-xs text-[#94A3B8]">최대 {fmt(item.estimatedMax)}</div>
+                      {needsInput ? (
+                        <span className="text-xs px-2 py-1 rounded-full border whitespace-nowrap"
+                              style={{ background: NEEDS_MORE_INPUT_BADGE.bg, color: NEEDS_MORE_INPUT_BADGE.color, borderColor: NEEDS_MORE_INPUT_BADGE.border }}>
+                          추가입력 필요
+                        </span>
+                      ) : (
+                        <>
+                          <div className="text-lg font-bold font-mono text-[#10B981]">{fmt(item.estimatedMin as number)}+</div>
+                          {item.estimatedMax != null && (
+                            <div className="text-xs text-[#94A3B8]">최대 {fmt(item.estimatedMax)}</div>
+                          )}
+                        </>
+                      )}
                     </div>
                     {isOpen ? <ChevronUp size={16} className="text-[#94A3B8]" /> : <ChevronDown size={16} className="text-[#94A3B8]" />}
                   </button>
 
                   {isOpen && (
                     <div className="px-5 pb-5 border-t border-[#F1F5F9] pt-4 space-y-3">
+                      {item.basis && (
+                        <div>
+                          <div className="text-xs font-medium text-[#64748B] mb-1">산정 근거</div>
+                          <p className="text-sm text-[#475569]">{item.basis}</p>
+                        </div>
+                      )}
                       {item.requiredDocs.length > 0 && (
                         <div>
                           <div className="text-xs font-medium text-[#64748B] mb-2">필요 서류</div>
@@ -122,6 +143,32 @@ export default function BenefitsPage() {
                 </div>
               )
             })}
+          </div>
+        </div>
+      )}
+
+      {/* 추가 입력 필요 안내 */}
+      {filter !== '복지제도' && needsMoreInput && needsMoreInput.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-sm font-semibold text-[#475569] uppercase tracking-wide mb-3">
+            추가 입력이 필요한 혜택 ({needsMoreInput.length})
+          </h2>
+          <div className="bg-[#FFF7ED] border border-[#FFEDD5] rounded-2xl p-5 space-y-3">
+            <p className="text-xs text-[#9A3412]">
+              아래 정보를 입력하면 정확한 자격·예상 수령액을 계산할 수 있어요.
+            </p>
+            {needsMoreInput.map((item, i) => (
+              <div key={i} className="bg-white rounded-xl border border-[#FFEDD5] p-4">
+                <div className="font-medium text-[#1E293B] mb-2">{item.benefitName}</div>
+                <div className="flex flex-wrap gap-2">
+                  {item.missingInputs.map((field, j) => (
+                    <span key={j} className="text-xs px-2.5 py-1 bg-[#FFF7ED] rounded-full text-[#EA580C] border border-[#FFEDD5]">
+                      {field}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -208,7 +255,8 @@ export default function BenefitsPage() {
         <div className="text-center py-6 text-sm text-[#94A3B8]">복지 제도 불러오는 중...</div>
       )}
 
-      {!loadingWelfare && filteredReceivable.length === 0 && filteredWelfare.length === 0 && actions.length === 0 && (
+      {!loadingWelfare && filteredReceivable.length === 0 && filteredWelfare.length === 0
+        && actions.length === 0 && !(needsMoreInput && needsMoreInput.length > 0) && (
         <div className="text-center py-16 text-[#94A3B8]">분석 결과 혜택 항목이 없습니다.</div>
       )}
     </div>

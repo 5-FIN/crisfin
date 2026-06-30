@@ -28,4 +28,7 @@ public class AnalysisRequest {
     private String situationDescription;
 
     private Map<String, Object> filteredMyData;
+
+    /** Optional structured inputs for the benefit rule engine (자격·금액 계산). */
+    private ApplicantProfile applicantProfile;
 }

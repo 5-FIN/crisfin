@@ -19,8 +19,15 @@ public enum ErrorCode {
     TOKEN_INVALID(401, "TOKEN_INVALID", "유효하지 않은 토큰입니다."),
     UNAUTHORIZED(401, "UNAUTHORIZED", "인증이 필요합니다."),
 
+    // 402 – Payment
+    PAYMENT_REQUIRED(402, "PAYMENT_REQUIRED", "분석 이용권이 필요합니다. 결제 후 이용해 주세요."),
+
     // 403 – Authorization
     FORBIDDEN(403, "FORBIDDEN", "해당 리소스에 대한 접근 권한이 없습니다."),
+
+    // 404 – Not found
+    ANALYSIS_NOT_FOUND(404, "ANALYSIS_NOT_FOUND", "요청한 분석 결과를 찾을 수 없습니다."),
+    PAYMENT_ORDER_NOT_FOUND(404, "PAYMENT_ORDER_NOT_FOUND", "결제 주문을 찾을 수 없습니다."),
 
     // 500 – Internal
     LLM_RESPONSE_PARSE_ERROR(500, "LLM_RESPONSE_PARSE_ERROR", "LLM 응답을 파싱하는 데 실패했습니다."),
