@@ -11,7 +11,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class BenefitRuleEngineTest {
 
-    private final BenefitRuleEngine engine = new BenefitRuleEngine();
+    private final BenefitRuleEngine engine =
+            new BenefitRuleEngine(BenefitCriteriaFixtures.provider());
 
     @Test
     void unemployment_eligible_producesAmountRange() {

@@ -22,23 +22,11 @@ import java.util.List;
 @Component
 public class BenefitRuleEngine {
 
-    // 2024 기준 중위소득 (월, 원)
-    private static final long[] MEDIAN_INCOME = {
-            0, 2_228_445L, 3_682_609L, 4_714_657L, 5_729_913L, 6_695_735L, 7_618_369L
-    };
-    private static final long MEDIAN_INCOME_PER_EXTRA = 922_634L;
+    private final BenefitCriteriaProvider criteria;
 
-    // 긴급복지 생계지원 (월, 원) — index by household size
-    private static final long[] EMERGENCY_SUPPORT = {
-            0, 713_100L, 1_178_400L, 1_508_600L, 1_841_700L, 2_072_101L, 2_348_359L
-    };
-
-    // 긴급복지 금융재산 기준 (원) — 단순화한 상한
-    private static final long EMERGENCY_ASSET_CAP = 100_000_000L;
-
-    // 실업급여 1일 구직급여 상·하한 (2024, 원)
-    private static final long UI_DAILY_MAX = 66_000L;
-    private static final long UI_DAILY_MIN = 63_104L;
+    public BenefitRuleEngine(BenefitCriteriaProvider criteria) {
+        this.criteria = criteria;
+    }
 
     public RuleEvaluation evaluate(CrisisType crisisType, ApplicantProfile profile) {
         ApplicantProfile p = (profile != null) ? profile : ApplicantProfile.builder().build();
@@ -89,7 +77,7 @@ public class BenefitRuleEngine {
             return;
         }
 
-        long cap = outOfPocketCapByIncome(p.getMonthlyIncome());
+        long cap = criteria.outOfPocketCap(p.getMonthlyIncome());
         long oop = p.getAnnualOutOfPocketMedical();
         long refund = Math.max(0, oop - cap);
         if (refund > 0) {
@@ -125,7 +113,7 @@ public class BenefitRuleEngine {
         }
 
         long daily = Math.round(p.getMonthlyIncome() / 30.0 * 0.6);
-        daily = Math.max(UI_DAILY_MIN, Math.min(daily, UI_DAILY_MAX));
+        daily = Math.max(criteria.uiDailyMin(), Math.min(daily, criteria.uiDailyMax()));
         long min = daily * 120; // 최소 소정급여일수
         long max = daily * 270; // 최대 소정급여일수
         out.add(ReceivableEstimate.eligible(name, min, max,
@@ -150,7 +138,7 @@ public class BenefitRuleEngine {
             return;
         }
 
-        long limit = careLimitByGrade(p.getCareGrade());
+        long limit = criteria.careLimit(p.getCareGrade());
         if (limit <= 0) {
             return;
         }
@@ -201,60 +189,19 @@ public class BenefitRuleEngine {
             return;
         }
 
-        long incomeThreshold = Math.round(medianIncome(p.getHouseholdSize()) * 0.75);
+        long incomeThreshold = Math.round(criteria.medianIncome(p.getHouseholdSize()) * 0.75);
         boolean incomeOk = p.getMonthlyIncome() <= incomeThreshold;
-        boolean assetOk = p.getLiquidFinancialAssets() <= EMERGENCY_ASSET_CAP;
+        boolean assetOk = p.getLiquidFinancialAssets() <= criteria.emergencyAssetCap();
         if (!incomeOk || !assetOk) {
             return; // 소득/재산 기준 초과 — 비대상
         }
 
-        long monthly = emergencySupportByHousehold(p.getHouseholdSize());
+        long monthly = criteria.emergencySupport(p.getHouseholdSize());
         long min = monthly;        // 1개월
         long max = monthly * 3L;   // 최대 3개월(연장 가정)
         out.add(ReceivableEstimate.eligible(name, min, max,
                 String.format("가구원 %d인 기준 중위소득 75%%(%,d원) 이하 요건 충족. 생계지원 월 %,d원(최대 3개월) 기준 추정.",
                         p.getHouseholdSize(), incomeThreshold, monthly),
                 "보건복지부", url, "위기상황 발생 후 신청", docs));
-    }
-
-    // ------------------------------------------------------------------ //
-    //  Threshold helpers
-    // ------------------------------------------------------------------ //
-
-    private long medianIncome(int householdSize) {
-        if (householdSize <= 6) {
-            return MEDIAN_INCOME[Math.max(1, householdSize)];
-        }
-        return MEDIAN_INCOME[6] + (householdSize - 6) * MEDIAN_INCOME_PER_EXTRA;
-    }
-
-    private long emergencySupportByHousehold(int householdSize) {
-        if (householdSize <= 6) {
-            return EMERGENCY_SUPPORT[Math.max(1, householdSize)];
-        }
-        return EMERGENCY_SUPPORT[6] + (householdSize - 6) * 230_000L;
-    }
-
-    /** 본인부담상한 (연, 원) — 월 소득을 소득분위 근사로 매핑. */
-    private long outOfPocketCapByIncome(long monthlyIncome) {
-        if (monthlyIncome <= 1_500_000L) return 870_000L;    // 1분위
-        if (monthlyIncome <= 2_500_000L) return 1_080_000L;  // 2~3분위
-        if (monthlyIncome <= 3_500_000L) return 1_550_000L;  // 4~5분위
-        if (monthlyIncome <= 5_000_000L) return 2_890_000L;  // 6~7분위
-        if (monthlyIncome <= 7_000_000L) return 3_600_000L;  // 8분위
-        if (monthlyIncome <= 9_000_000L) return 4_430_000L;  // 9분위
-        return 5_980_000L;                                   // 10분위
-    }
-
-    /** 장기요양 등급별 재가급여 월 한도 (2024, 원). */
-    private long careLimitByGrade(int grade) {
-        return switch (grade) {
-            case 1 -> 2_069_900L;
-            case 2 -> 1_869_600L;
-            case 3 -> 1_455_800L;
-            case 4 -> 1_341_800L;
-            case 5 -> 1_151_600L;
-            default -> 0L;
-        };
     }
 }
