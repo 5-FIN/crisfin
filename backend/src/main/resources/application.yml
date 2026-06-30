@@ -34,7 +34,9 @@ jwt:
   refresh-expiration: 604800000
 llm:
   providers:
-    order: GEMINI,CLAUDE,OPENAI
+    # 사용할 LLM 우선순위. 환경변수 LLM_PROVIDERS_ORDER로 덮어쓰기 가능.
+    # 예) OPENAI 키만 있으면 LLM_PROVIDERS_ORDER=OPENAI 로 두면 폴백 실패 호출 없이 바로 사용.
+    order: ${LLM_PROVIDERS_ORDER:GEMINI,CLAUDE,OPENAI}
   gemini:
     api-key: ${GEMINI_API_KEY:}
     model: gemini-1.5-pro
