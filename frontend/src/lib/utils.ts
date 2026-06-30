@@ -178,3 +178,15 @@ export const taskStore = {
     return current
   },
 }
+
+/** 마이데이터 항목 on/off 선택 상태 localStorage 헬퍼 (필드키→포함여부) */
+export const myDataSelectionStore = {
+  load: (): Record<string, boolean> | null => {
+    try {
+      const raw = localStorage.getItem('cf_mydata_selection')
+      return raw ? JSON.parse(raw) : null
+    } catch { return null }
+  },
+  save: (selection: Record<string, boolean>) =>
+    localStorage.setItem('cf_mydata_selection', JSON.stringify(selection)),
+}

@@ -6,7 +6,7 @@ import {
   Loader2, type LucideIcon,
 } from 'lucide-react'
 import { myDataApi } from '@/lib/api'
-import { fmt, summarizeMyData } from '@/lib/utils'
+import { fmt, summarizeMyData, myDataSelectionStore } from '@/lib/utils'
 import type { PersonaType } from '@/lib/types'
 
 /* ── 토글 가능한 마이데이터 항목 ── */
@@ -91,9 +91,14 @@ export default function MyDataSelector({ persona, onChange }: Props) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [data, setData] = useState<Obj>({})
-  const [enabled, setEnabled] = useState<Record<FieldKey, boolean>>(() =>
-    Object.fromEntries(MYDATA_FIELDS.map(f => [f.key, true])) as Record<FieldKey, boolean>,
-  )
+  // 기본값(전부 ON)에 저장된 선택 상태를 덮어써서 복원. 새 필드는 기본 ON 유지.
+  const [enabled, setEnabled] = useState<Record<FieldKey, boolean>>(() => {
+    const defaults = Object.fromEntries(
+      MYDATA_FIELDS.map(f => [f.key, true]),
+    ) as Record<FieldKey, boolean>
+    const saved = myDataSelectionStore.load()
+    return saved ? { ...defaults, ...saved } : defaults
+  })
 
   /* 페르소나 변경 시 실제 목 데이터 로드 */
   useEffect(() => {
@@ -107,7 +112,11 @@ export default function MyDataSelector({ persona, onChange }: Props) {
     return () => { cancelled = true }
   }, [persona])
 
-  const toggle = (k: FieldKey) => setEnabled(p => ({ ...p, [k]: !p[k] }))
+  const toggle = (k: FieldKey) => setEnabled(p => {
+    const next = { ...p, [k]: !p[k] }
+    myDataSelectionStore.save(next)   // 선택 상태 영구 저장
+    return next
+  })
 
   /* ── 수정 가능한 핵심 수치들을 배열 단위로 로컬 보관 ── */
   const editValue = (arrKey: string, idx: number, field: string, n: number) => {
