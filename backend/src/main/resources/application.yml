@@ -45,7 +45,8 @@ llm:
     model: claude-sonnet-4-6
   openai:
     api-key: ${OPENAI_API_KEY:}
-    model: gpt-4o
+    # 챗 모델. 환경변수 OPENAI_MODEL로 덮어쓰기 가능. 기본은 저비용 gpt-4o-mini.
+    model: ${OPENAI_MODEL:gpt-4o-mini}
 # Hybrid RAG embeddings — disabled automatically when the API key is blank.
 embedding:
   openai:
