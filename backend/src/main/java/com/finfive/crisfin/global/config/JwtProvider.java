@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.UUID;
 
 /**
  * Stateless JWT utility — issues and validates access/refresh tokens.
@@ -66,11 +67,16 @@ public class JwtProvider {
     }
 
     /**
-     * Generates a long-lived refresh token that carries only the subject (email).
+     * Generates a long-lived refresh token carrying the subject (email) and a unique
+     * {@code jti} (JWT ID). The random {@code jti} guarantees each refresh token string
+     * is distinct even when two tokens are issued for the same user within the same second
+     * (e.g. signup immediately followed by login), which would otherwise collide on the
+     * {@code refresh_tokens.token} UNIQUE constraint and fail with a 500.
      */
     public String generateRefreshToken(String email) {
         Date now = new Date();
         return Jwts.builder()
+                .id(UUID.randomUUID().toString())
                 .subject(email)
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + refreshExpirationMs))

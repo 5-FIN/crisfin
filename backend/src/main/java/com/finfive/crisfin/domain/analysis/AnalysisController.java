@@ -93,8 +93,15 @@ public class AnalysisController {
      * @return {@link ApiResponse} wrapping the stored analysis result
      */
     @GetMapping("/results/{id}")
-    public ResponseEntity<ApiResponse<AnalysisResultResponse>> getResult(@PathVariable Long id) {
-        AnalysisResultResponse response = analysisService.getResult(id);
+    public ResponseEntity<ApiResponse<AnalysisResultResponse>> getResult(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        // 로그인 필수 + 소유권 검증: 본인 소유 결과만 조회 가능(IDOR 방지).
+        Long userId = extractUserId(userDetails);
+        if (userId == null) {
+            throw new CrisfinException(ErrorCode.UNAUTHORIZED, "로그인이 필요합니다.");
+        }
+        AnalysisResultResponse response = analysisService.getResult(id, userId);
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
