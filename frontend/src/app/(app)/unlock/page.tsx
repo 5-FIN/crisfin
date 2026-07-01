@@ -2,123 +2,191 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Lock, Check, Loader2, ShieldCheck, ArrowRight } from 'lucide-react'
+import { Check, Loader2, ShieldCheck, Sparkles, BookOpen } from 'lucide-react'
 import { paymentApi } from '@/lib/api'
 import { pendingAnalysisStore, fmt } from '@/lib/utils'
 import { resumePendingAnalysis } from '@/lib/resumeAnalysis'
+import type { PlanResponse } from '@/lib/types'
 
-const PLAN_FEATURES = [
-  'AI 위기 금융 분석 무제한',
-  '받을 돈·미룰 것·할 일 맞춤 플랜',
-  '자격·예상 수령액 자동 계산 (rule 엔진)',
-  '30일 긴급도 타임라인',
-]
+/** 무료 플랜은 결제 대상이 아니라 카탈로그에만 표시(길라잡이는 상시 무료) */
+const FREE_PLAN = {
+  name: '무료',
+  tagline: '로그인 없이 지금 바로',
+  features: ['위기 유형별 정보 길라잡이', 'AI 프롬프트 복사', '지역 복지 제도 탐색'],
+}
+
+/** 추천(하이라이트)할 플랜 코드 */
+const RECOMMENDED = 'UNLIMITED_30D'
 
 export default function UnlockPage() {
   const router = useRouter()
-  const [amount, setAmount] = useState<number | null>(null)
-  const [phase, setPhase] = useState<'idle' | 'checkout' | 'confirm' | 'resume'>('idle')
+  const [plans, setPlans] = useState<PlanResponse[]>([])
+  const [loading, setLoading] = useState(true)
+  const [busyPlan, setBusyPlan] = useState<string | null>(null)
+  const [phase, setPhase] = useState<'checkout' | 'confirm' | 'resume' | null>(null)
   const [error, setError] = useState('')
   const hasPending = typeof window !== 'undefined' && !!pendingAnalysisStore.load()
 
-  // 결제 금액 미리보기 (mock checkout)
   useEffect(() => {
-    paymentApi.checkout()
-      .then(res => setAmount(res.amount))
-      .catch(() => {/* 금액 미리보기는 실패해도 무시 */})
+    paymentApi.plans()
+      .then(setPlans)
+      .catch(() => setError('요금제를 불러오지 못했습니다.'))
+      .finally(() => setLoading(false))
   }, [])
 
-  async function handlePay() {
+  async function handlePay(planCode: string) {
     setError('')
+    setBusyPlan(planCode)
     try {
-      // 1) 결제 주문 생성 (mock)
       setPhase('checkout')
-      const { orderUid } = await paymentApi.checkout()
-
-      // 2) 결제 확인 → 이용권 즉시 활성화
+      const { orderUid } = await paymentApi.checkout(planCode)
       setPhase('confirm')
       await paymentApi.confirm(orderUid)
-
-      // 3) 결제 후 즉시 분석 재실행 (보류 요청이 있을 때)
+      // 결제 후: 보류 분석이 있으면 바로 이어서 실행, 없으면 진단으로
       setPhase('resume')
       const resumed = await resumePendingAnalysis(router.push)
       if (!resumed) router.push('/diagnosis')
     } catch (err) {
       setError(err instanceof Error ? err.message : '결제 처리 중 오류가 발생했습니다.')
-      setPhase('idle')
+      setBusyPlan(null)
+      setPhase(null)
     }
   }
 
-  const busy = phase !== 'idle'
   const busyLabel =
     phase === 'checkout' ? '결제 요청 중...' :
     phase === 'confirm'  ? '이용권 활성화 중...' :
-    phase === 'resume'   ? '분석 재실행 중...' : ''
+    phase === 'resume'   ? '분석 실행 중...' : ''
 
   return (
-    <div className="max-w-md mx-auto px-4 py-12">
-      <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm overflow-hidden">
-        {/* 헤더 */}
-        <div className="px-6 py-8 text-center border-b border-[#F1F5F9]"
-             style={{ background: 'linear-gradient(135deg, #EFF6FF 0%, #F5F3FF 100%)' }}>
-          <div className="w-14 h-14 rounded-2xl bg-[#2563EB] flex items-center justify-center mx-auto mb-4">
-            <Lock size={26} className="text-white" />
-          </div>
-          <h1 className="text-xl font-bold text-[#1E293B] mb-1.5">분석 이용권이 필요해요</h1>
-          <p className="text-sm text-[#64748B]">
-            {hasPending
-              ? '결제하면 방금 입력한 분석을 바로 이어서 실행합니다.'
-              : '이용권을 활성화하고 AI 위기 금융 분석을 시작하세요.'}
-          </p>
-        </div>
-
-        {/* 플랜 카드 */}
-        <div className="px-6 py-6">
-          <div className="flex items-baseline gap-1.5 mb-5">
-            <span className="text-3xl font-bold font-mono text-[#1E293B]">
-              {amount != null ? fmt(amount) : '—'}
-            </span>
-            <span className="text-sm text-[#94A3B8]">/ 1회 분석 이용권</span>
-          </div>
-
-          <ul className="space-y-2.5 mb-6">
-            {PLAN_FEATURES.map(f => (
-              <li key={f} className="flex items-start gap-2.5 text-sm text-[#475569]">
-                <Check size={16} className="text-[#10B981] flex-shrink-0 mt-0.5" />
-                <span>{f}</span>
-              </li>
-            ))}
-          </ul>
-
-          {error && (
-            <div className="mb-4 px-3.5 py-2.5 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600">
-              {error}
-            </div>
-          )}
-
-          <button
-            onClick={handlePay}
-            disabled={busy}
-            className="w-full py-3 bg-[#2563EB] text-white font-semibold rounded-xl hover:bg-[#1D4ED8] disabled:opacity-60 disabled:cursor-not-allowed transition-colors text-sm flex items-center justify-center gap-2"
-          >
-            {busy
-              ? <><Loader2 size={16} className="animate-spin" /> {busyLabel}</>
-              : <>결제하고 바로 분석하기 <ArrowRight size={16} /></>}
-          </button>
-
-          <div className="mt-4 flex items-center justify-center gap-1.5 text-xs text-[#94A3B8]">
-            <ShieldCheck size={13} />
-            테스트 결제 (mock) · 결제 즉시 이용권이 활성화됩니다
-          </div>
-        </div>
+    <div className="max-w-4xl mx-auto px-4 py-12">
+      {/* 헤더 */}
+      <div className="text-center mb-10">
+        <h1 className="text-2xl md:text-3xl font-bold text-[#1E293B] mb-2">요금제를 선택하세요</h1>
+        <p className="text-sm text-[#64748B]">
+          {hasPending
+            ? '결제하면 방금 입력한 분석을 바로 이어서 실행합니다.'
+            : '무료로 정보를 둘러보거나, AI 맞춤 분석으로 위기를 정리하세요.'}
+        </p>
       </div>
 
+      {error && (
+        <div className="max-w-md mx-auto mb-6 px-3.5 py-2.5 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 text-center">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex justify-center py-16"><Loader2 size={28} className="text-[#2563EB] animate-spin" /></div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-start">
+          {/* 무료 카드 */}
+          <PlanCard
+            name={FREE_PLAN.name}
+            tagline={FREE_PLAN.tagline}
+            price="무료"
+            features={FREE_PLAN.features}
+            ctaLabel="길라잡이 보기"
+            ctaIcon={<BookOpen size={16} />}
+            onClick={() => router.push('/guide')}
+            variant="free"
+            disabled={busyPlan !== null}
+          />
+
+          {/* 유료 플랜 카드 (SINGLE, UNLIMITED_30D) */}
+          {plans.map(p => {
+            const recommended = p.code === RECOMMENDED
+            const busy = busyPlan === p.code
+            return (
+              <PlanCard
+                key={p.code}
+                name={p.name}
+                tagline={p.tagline}
+                price={`${fmt(p.priceKrw)}`}
+                priceSuffix={p.uses == null ? `/ ${p.durationDays}일` : `/ ${p.uses}회`}
+                features={p.features}
+                ctaLabel={busy ? busyLabel : '결제하고 시작'}
+                ctaIcon={busy ? <Loader2 size={16} className="animate-spin" /> : undefined}
+                onClick={() => handlePay(p.code)}
+                variant={recommended ? 'recommended' : 'paid'}
+                badge={recommended ? '인기' : undefined}
+                disabled={busyPlan !== null}
+              />
+            )
+          })}
+        </div>
+      )}
+
+      <div className="mt-8 flex flex-col items-center gap-3">
+        <div className="flex items-center gap-1.5 text-xs text-[#94A3B8]">
+          <ShieldCheck size={13} /> 테스트 결제(mock) · 결제 즉시 이용권이 활성화됩니다
+        </div>
+        <button
+          onClick={() => router.push('/dashboard')}
+          disabled={busyPlan !== null}
+          className="text-xs text-[#64748B] hover:text-[#2563EB] transition-colors disabled:opacity-50"
+        >
+          나중에 하기
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/* ── 플랜 카드 ── */
+function PlanCard({
+  name, tagline, price, priceSuffix, features, ctaLabel, ctaIcon, onClick, variant, badge, disabled,
+}: {
+  name: string
+  tagline: string
+  price: string
+  priceSuffix?: string
+  features: string[]
+  ctaLabel: string
+  ctaIcon?: React.ReactNode
+  onClick: () => void
+  variant: 'free' | 'paid' | 'recommended'
+  badge?: string
+  disabled?: boolean
+}) {
+  const recommended = variant === 'recommended'
+  return (
+    <div className={`relative bg-white rounded-2xl border p-6 shadow-sm flex flex-col ${
+      recommended ? 'border-[#2563EB] ring-2 ring-[#2563EB]/20 md:-mt-2' : 'border-[#E2E8F0]'
+    }`}>
+      {badge && (
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-bold text-white bg-[#2563EB] px-3 py-1 rounded-full flex items-center gap-1">
+          <Sparkles size={11} /> {badge}
+        </span>
+      )}
+      <div className="mb-4">
+        <div className="font-bold text-[#1E293B] text-lg">{name}</div>
+        <div className="text-xs text-[#94A3B8] mt-0.5">{tagline}</div>
+      </div>
+      <div className="flex items-baseline gap-1 mb-5">
+        <span className="text-2xl font-bold font-mono text-[#1E293B]">{price}</span>
+        {priceSuffix && <span className="text-xs text-[#94A3B8]">{priceSuffix}</span>}
+      </div>
+      <ul className="space-y-2.5 mb-6 flex-1">
+        {features.map(f => (
+          <li key={f} className="flex items-start gap-2 text-sm text-[#475569]">
+            <Check size={15} className="text-[#10B981] flex-shrink-0 mt-0.5" />
+            <span>{f}</span>
+          </li>
+        ))}
+      </ul>
       <button
-        onClick={() => router.push('/dashboard')}
-        disabled={busy}
-        className="w-full mt-4 text-center text-xs text-[#64748B] hover:text-[#2563EB] transition-colors disabled:opacity-50"
+        onClick={onClick}
+        disabled={disabled}
+        className={`w-full py-2.5 font-semibold rounded-xl transition-colors text-sm flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
+          variant === 'free'
+            ? 'bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0]'
+            : recommended
+              ? 'bg-[#2563EB] text-white hover:bg-[#1D4ED8]'
+              : 'bg-[#1E293B] text-white hover:bg-[#0F172A]'
+        }`}
       >
-        나중에 하기
+        {ctaIcon} {ctaLabel}
       </button>
     </div>
   )

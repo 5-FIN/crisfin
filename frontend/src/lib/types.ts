@@ -239,13 +239,31 @@ export interface WelfareBenefitResponse {
 /* ────────────────────────────────────────────────
    결제 / 이용권 (Payments)
 ──────────────────────────────────────────────── */
+/** 요금제 카탈로그 항목 (GET /payments/plans) */
+export interface PlanResponse {
+  code: string
+  name: string
+  priceKrw: number
+  durationDays: number
+  /** null = 무제한 */
+  uses: number | null
+  tagline: string
+  features: string[]
+}
+
+export interface CheckoutRequest {
+  plan: string
+}
+
 export interface CheckoutResponse {
   orderUid: string
   amount: number
+  plan?: string
 }
 
 export interface EntitlementResponse {
   active: boolean
   plan: string | null
   expiresAt?: string | null
+  remainingUses?: number | null
 }
