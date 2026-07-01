@@ -31,6 +31,16 @@ export interface SignupRequest {
   email: string
   password: string
   nickname: string
+  regionCtpv?: string
+  regionSgg?: string
+}
+
+export interface UserResponse {
+  email: string
+  nickname: string
+  role: string
+  regionCtpv?: string | null
+  regionSgg?: string | null
 }
 
 export interface LoginRequest {
@@ -216,6 +226,8 @@ export interface WelfareBenefitResponse {
   crisisTags: CrisisType[]
   active: boolean
   lastSyncedAt: string | null
+  ctpvNm?: string | null
+  sggNm?: string | null
 }
 
 /* ────────────────────────────────────────────────

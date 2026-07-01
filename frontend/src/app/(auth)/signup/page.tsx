@@ -5,10 +5,11 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { authApi } from '@/lib/api'
 import { tokenStore } from '@/lib/utils'
+import { SIDO_LIST } from '@/lib/regions'
 
 export default function SignupPage() {
   const router = useRouter()
-  const [form, setForm] = useState({ email: '', password: '', nickname: '' })
+  const [form, setForm] = useState({ email: '', password: '', nickname: '', regionCtpv: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -21,7 +22,7 @@ export default function SignupPage() {
     }
     setLoading(true)
     try {
-      const res = await authApi.signup(form)
+      const res = await authApi.signup({ ...form, regionCtpv: form.regionCtpv || undefined })
       tokenStore.set(res.accessToken, res.refreshToken)
       router.push('/diagnosis')
     } catch (err) {
@@ -62,6 +63,19 @@ export default function SignupPage() {
                 />
               </div>
             ))}
+            <div>
+              <label className="block text-sm font-medium text-[#1E293B] mb-1.5">지역 (선택)</label>
+              <select
+                value={form.regionCtpv}
+                onChange={e => setForm(f => ({ ...f, regionCtpv: e.target.value }))}
+                className="w-full px-3.5 py-2.5 rounded-lg border border-[#E2E8F0] text-sm text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent transition"
+              >
+                <option value="">지역(시/도) 선택</option>
+                {SIDO_LIST.map(sido => (
+                  <option key={sido} value={sido}>{sido}</option>
+                ))}
+              </select>
+            </div>
             {error && (
               <div className="px-3.5 py-2.5 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600">
                 {error}
