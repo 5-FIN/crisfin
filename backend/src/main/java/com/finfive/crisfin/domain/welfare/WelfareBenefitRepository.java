@@ -40,16 +40,21 @@ public interface WelfareBenefitRepository extends JpaRepository<WelfareBenefit, 
      * (crisis tag) is optional: a {@code null} value disables that filter. The
      * explicit {@code CAST(... AS TEXT)} wrappers avoid PostgreSQL bind-parameter
      * type-inference errors when a null is passed for a {@code text} comparison.
+     *
+     * <p>When {@code sggNm} is supplied it is <em>inclusive</em>: rows matching the
+     * given 시군구 <strong>or</strong> having no 시군구 ({@code sgg_nm IS NULL}, i.e.
+     * 시도-level / 전국 공통 제도) are returned, so a user's district-specific and
+     * broader regional benefits show together rather than the former hiding the latter.
      */
     @Query(value =
         "SELECT * FROM welfare_benefits WHERE is_active = true " +
         "AND (CAST(:ctpvNm AS TEXT) IS NULL OR ctpv_nm = CAST(:ctpvNm AS TEXT)) " +
-        "AND (CAST(:sggNm AS TEXT) IS NULL OR sgg_nm = CAST(:sggNm AS TEXT)) " +
+        "AND (CAST(:sggNm AS TEXT) IS NULL OR sgg_nm = CAST(:sggNm AS TEXT) OR sgg_nm IS NULL) " +
         "AND (CAST(:tag AS TEXT) IS NULL OR crisis_tags @> jsonb_build_array(CAST(:tag AS TEXT)))",
         countQuery =
         "SELECT COUNT(*) FROM welfare_benefits WHERE is_active = true " +
         "AND (CAST(:ctpvNm AS TEXT) IS NULL OR ctpv_nm = CAST(:ctpvNm AS TEXT)) " +
-        "AND (CAST(:sggNm AS TEXT) IS NULL OR sgg_nm = CAST(:sggNm AS TEXT)) " +
+        "AND (CAST(:sggNm AS TEXT) IS NULL OR sgg_nm = CAST(:sggNm AS TEXT) OR sgg_nm IS NULL) " +
         "AND (CAST(:tag AS TEXT) IS NULL OR crisis_tags @> jsonb_build_array(CAST(:tag AS TEXT)))",
         nativeQuery = true)
     Page<WelfareBenefit> search(@Param("ctpvNm") String ctpvNm,
