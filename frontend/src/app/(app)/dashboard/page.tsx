@@ -2,28 +2,29 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { ArrowRight, TrendingUp, PauseCircle, DollarSign, CheckSquare } from 'lucide-react'
 import { analysisStore, fmt, fmtAmount, CRISIS_LABELS, CRISIS_EMOJI, priorityBadge } from '@/lib/utils'
+import NoAnalysisEmptyState from '@/components/common/NoAnalysisEmptyState'
 import type { AnalysisResultResponse } from '@/lib/types'
 
 export default function DashboardPage() {
-  const router = useRouter()
   const [analysis, setAnalysis] = useState<AnalysisResultResponse | null>(null)
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
-    const data = analysisStore.load()
-    if (!data) { router.push('/diagnosis'); return }
-    setAnalysis(data)
-  }, [router])
+    setAnalysis(analysisStore.load())
+    setLoaded(true)
+  }, [])
 
-  if (!analysis) {
+  if (!loaded) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="animate-pulse text-[#94A3B8]">불러오는 중...</div>
       </div>
     )
   }
+
+  if (!analysis) return <NoAnalysisEmptyState title="대시보드" />
 
   const { result, crisisType } = analysis
   const { summary, todos, receivable, holdable, actions } = result
