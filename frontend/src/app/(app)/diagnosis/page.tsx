@@ -9,6 +9,7 @@ import MyDataSelector from '@/components/mydata/MyDataSelector'
 import type { AnalysisRequest, ApplicantProfile, CrisisType, PersonaType } from '@/lib/types'
 
 type Step = 1 | 2 | 3 | 4 | 5
+type Obj = Record<string, unknown>
 
 const CRISIS_OPTIONS = [
   { key: 'hospitalization', label: '입원/수술',     emoji: '🏥', desc: '갑작스러운 입원·수술' },
@@ -26,38 +27,39 @@ const JOB_OPTIONS = [
   { value: 'public',        label: '공무원' },
 ]
 
-const CARE_GRADE_OPTIONS = [
-  { value: '',  label: '모름/미판정' },
-  { value: '1', label: '1등급' },
-  { value: '2', label: '2등급' },
-  { value: '3', label: '3등급' },
-  { value: '4', label: '4등급' },
-  { value: '5', label: '5등급' },
-]
-
 /**
- * 위기 유형별로 규칙 엔진(BenefitRuleEngine)이 실제 소비하는 추가 입력.
- * 공통(긴급복지 생계지원)은 모든 위기에서 '가구 금융재산'을 요구하므로 별도로 항상 노출한다.
- * accident/bereavement는 규칙 엔진이 서류·조회 기반이라 수집할 프로필 필드가 없어 안내만 제공.
+ * 위기 유형별로 마이데이터에서 자동으로 불러오는 값을 사용자에게 미리 안내.
+ * 손입력을 없애고 다음 단계(마이데이터)에서 채워지는 항목을 명시한다.
+ * accident/bereavement는 규칙 엔진이 서류·조회 기반이라 별도 값 없이 안내만 제공.
  */
 const CRISIS_FIELD_INFO: Record<string, string> = {
-  accident: '산재보험 급여는 업무상 재해 인정 여부와 평균임금 확인이 필요합니다. 재해 경위를 아래 상세 입력에 적어주세요.',
+  hospitalization: '연간 본인부담 의료비(본인부담상한제 환급 산정)를 마이데이터에서 자동으로 불러옵니다.',
+  'job-loss': '고용보험 가입기간·이직 사유(실업급여 산정)를 마이데이터에서 자동으로 불러옵니다.',
+  caregiving: '장기요양 등급(장기요양급여 산정)을 마이데이터에서 자동으로 불러옵니다.',
+  accident: '산재보험 급여는 업무상 재해 인정 여부와 평균임금 확인이 필요합니다. 재해 경위를 이후 상세 입력에 적어주세요.',
   bereavement: '안심상속 원스톱 서비스로 사망자의 금융재산을 조회한 뒤 수령액이 산정됩니다. 별도 입력 없이 진행할 수 있습니다.',
+}
+
+/** unknown → 유한 숫자 또는 undefined */
+function num(v: unknown): number | undefined {
+  return typeof v === 'number' && Number.isFinite(v) ? v : undefined
+}
+
+/** 마이데이터 계좌 잔액 합계 → 가구 금융재산(원) */
+function sumBankBalance(md: Obj): number | undefined {
+  const accts = md.bankAccounts
+  if (!Array.isArray(accts)) return undefined
+  return accts.reduce((s: number, a) => s + (num((a as Obj)?.balance) ?? 0), 0)
 }
 
 export default function DiagnosisPage() {
   const router = useRouter()
   const [step, setStep] = useState<Step>(1)
   const [crisis, setCrisis]  = useState('')
-  const [form, setForm] = useState({
-    job: 'employed', income: '', household: '1',
-    assets: '',          // 가구 금융재산(만원) — 긴급복지 생계지원 자산기준
-    medical: '',         // 연간 본인부담 의료비(만원) — 입원/수술
-    insuranceMonths: '', // 고용보험 가입기간(개월) — 실직
-    separation: '',      // 비자발적 이직 여부('yes'|'no') — 실직
-    careGrade: '',       // 장기요양 등급(1~5) — 간병
-  })
-  const [filteredMyData, setFilteredMyData] = useState<Record<string, unknown>>({})
+  // 손입력은 마이데이터로 대체 불가능한 최소값(직업·가구원 수)만 유지.
+  // 월 소득·금융재산·위기별 값은 모두 마이데이터(mock)에서 자동으로 채운다.
+  const [form, setForm] = useState({ job: 'employed', household: '1' })
+  const [filteredMyData, setFilteredMyData] = useState<Obj>({})
   const [detail, setDetail] = useState('')
   const [loadingMsg, setLoadingMsg] = useState('')
   const [error, setError] = useState('')
@@ -65,18 +67,16 @@ export default function DiagnosisPage() {
   const pick = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
   const persona = jobToPersona(form.job) as PersonaType
 
-  /** 만원 단위 입력 문자열 → 원 단위 정수(비었거나 숫자 아니면 undefined) */
-  function manwonToWon(v: string): number | undefined {
-    if (v === '') return undefined
-    const n = Number(v)
-    return Number.isFinite(n) ? n * 10_000 : undefined
-  }
-
-  /** 폼값 → applicantProfile (rule 엔진 입력). 입력된 값만 포함. */
+  /**
+   * applicantProfile(rule 엔진 입력) 조립.
+   * householdSize만 손입력이고, 나머지 재정·위기별 값은 마이데이터에서 파생한다.
+   */
   function buildApplicantProfile(): ApplicantProfile {
     const householdSize = parseInt(form.household, 10)   // '5이상' → 5
-    const monthlyIncome = manwonToWon(form.income)
-    const liquidFinancialAssets = manwonToWon(form.assets)   // 공통(긴급복지 생계지원)
+    const md = filteredMyData
+    const monthlyIncome = num(md.monthlyIncome)                 // 마이데이터: 소득
+    const liquidFinancialAssets = sumBankBalance(md)            // 마이데이터: 계좌 잔액 합계
+    const pub = (md.publicData ?? {}) as Obj                    // 마이데이터: 공공데이터
 
     const p: ApplicantProfile = {
       ...(Number.isFinite(householdSize) ? { householdSize } : {}),
@@ -84,18 +84,17 @@ export default function DiagnosisPage() {
       ...(liquidFinancialAssets !== undefined ? { liquidFinancialAssets } : {}),
     }
 
-    // 위기 유형별 추가 입력 — 규칙 엔진이 소비하는 필드만 조건부로 채운다.
+    // 위기 유형별 값도 마이데이터 publicData에서 파생 — 규칙 엔진이 소비하는 필드만 채운다.
     if (crisis === 'hospitalization') {
-      const annualOutOfPocketMedical = manwonToWon(form.medical)
-      if (annualOutOfPocketMedical !== undefined) p.annualOutOfPocketMedical = annualOutOfPocketMedical
+      const v = num(pub.annualOutOfPocketMedical)
+      if (v !== undefined) p.annualOutOfPocketMedical = v
     } else if (crisis === 'job-loss') {
-      const months = parseInt(form.insuranceMonths, 10)
-      if (Number.isFinite(months)) p.employmentInsuranceMonths = months
-      if (form.separation === 'yes') p.involuntarySeparation = true
-      else if (form.separation === 'no') p.involuntarySeparation = false
+      const m = num(pub.employmentInsuranceMonths)
+      if (m !== undefined) p.employmentInsuranceMonths = m
+      if (typeof pub.involuntarySeparation === 'boolean') p.involuntarySeparation = pub.involuntarySeparation
     } else if (crisis === 'caregiving') {
-      const grade = parseInt(form.careGrade, 10)
-      if (Number.isFinite(grade)) p.careGrade = grade
+      const g = num(pub.careGrade)
+      if (g !== undefined) p.careGrade = g
     }
 
     return p
@@ -107,10 +106,13 @@ export default function DiagnosisPage() {
     // 위기유형·상황요약·신청자 프로필을 조립해 분석 요청(req)을 만든다.
     // catch에서 결제/로그인 게이팅 시 req를 보관하므로 try 밖에서 선언한다.
     const crisisType = CRISIS_KEY_MAP[crisis] as CrisisType
+    // 소득은 마이데이터에서 파생(원 → 만원 표기)해 상황 요약 텍스트에 반영.
+    const monthlyIncome = num(filteredMyData.monthlyIncome)
+    const incomeManwon  = monthlyIncome !== undefined ? String(Math.round(monthlyIncome / 10_000)) : ''
     const situation  = buildSituationDescription({
       crisisType,
       job: JOB_OPTIONS.find(o => o.value === form.job)?.label ?? form.job,
-      income: form.income,
+      income: incomeManwon,
       household: form.household,
       detail,
     })
@@ -156,7 +158,7 @@ export default function DiagnosisPage() {
                 {step > n ? <CheckCircle size={16} /> : n}
               </div>
               <span className={`text-sm ${step === n ? 'text-[#1E293B] font-medium' : 'text-[#94A3B8]'}`}>
-                {['위기 유형', '재정 정보', '마이데이터', '상세 입력'][n - 1]}
+                {['위기 유형', '기본 정보', '마이데이터', '상세 입력'][n - 1]}
               </span>
               {n < 4 && <div className="w-8 h-px bg-[#E2E8F0]" />}
             </div>
@@ -186,11 +188,11 @@ export default function DiagnosisPage() {
         </div>
       )}
 
-      {/* Step 2: 기초 재정 정보 */}
+      {/* Step 2: 기본 정보 (마이데이터로 못 가져오는 최소값만) */}
       {step === 2 && (
         <div>
-          <h2 className="text-2xl font-bold text-[#1E293B] mb-2">기본 재정 정보</h2>
-          <p className="text-[#64748B] mb-8">정확한 분석을 위해 간략한 정보를 입력해주세요.</p>
+          <h2 className="text-2xl font-bold text-[#1E293B] mb-2">기본 정보</h2>
+          <p className="text-[#64748B] mb-8">소득·재산 등 재정 정보는 다음 단계의 마이데이터에서 자동으로 불러옵니다. 여기서는 최소한만 입력해주세요.</p>
           <div className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-[#1E293B] mb-2">직업 유형</label>
@@ -204,77 +206,16 @@ export default function DiagnosisPage() {
                 ))}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-[#1E293B] mb-1.5">월 소득 (만원)</label>
-                <input type="number" value={form.income} onChange={e => pick('income', e.target.value)}
-                  placeholder="예: 300"
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-[#E2E8F0] text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] transition" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[#1E293B] mb-1.5">가구원 수</label>
-                <select value={form.household} onChange={e => pick('household', e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-[#E2E8F0] text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] transition bg-white">
-                  {['1', '2', '3', '4', '5이상'].map(v => <option key={v} value={v}>{v}인</option>)}
-                </select>
-              </div>
-            </div>
-
-            {/* 공통: 긴급복지 생계지원 자산기준 */}
             <div>
-              <label className="block text-sm font-medium text-[#1E293B] mb-1.5">가구 금융재산 (만원)</label>
-              <input type="number" value={form.assets} onChange={e => pick('assets', e.target.value)}
-                placeholder="예: 500 (예적금·현금 등 합계)"
-                className="w-full px-3.5 py-2.5 rounded-lg border border-[#E2E8F0] text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] transition" />
-              <p className="text-xs text-[#94A3B8] mt-1">긴급복지 생계지원 자격 판정에 사용됩니다.</p>
+              <label className="block text-sm font-medium text-[#1E293B] mb-1.5">가구원 수</label>
+              <select value={form.household} onChange={e => pick('household', e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-lg border border-[#E2E8F0] text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] transition bg-white">
+                {['1', '2', '3', '4', '5이상'].map(v => <option key={v} value={v}>{v}인</option>)}
+              </select>
+              <p className="text-xs text-[#94A3B8] mt-1">긴급복지 생계지원 기준(중위소득) 산정에 사용됩니다.</p>
             </div>
 
-            {/* 위기 유형별 추가 입력 */}
-            {crisis === 'hospitalization' && (
-              <div>
-                <label className="block text-sm font-medium text-[#1E293B] mb-1.5">최근 1년 본인부담 의료비 (만원)</label>
-                <input type="number" value={form.medical} onChange={e => pick('medical', e.target.value)}
-                  placeholder="예: 300 (비급여 제외, 건강보험 본인부담금)"
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-[#E2E8F0] text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] transition" />
-                <p className="text-xs text-[#94A3B8] mt-1">본인부담상한제 환급액 산정에 사용됩니다.</p>
-              </div>
-            )}
-
-            {crisis === 'job-loss' && (
-              <div className="space-y-5">
-                <div>
-                  <label className="block text-sm font-medium text-[#1E293B] mb-1.5">고용보험 가입기간 (개월)</label>
-                  <input type="number" value={form.insuranceMonths} onChange={e => pick('insuranceMonths', e.target.value)}
-                    placeholder="예: 18 (이직 전 사업장 기준)"
-                    className="w-full px-3.5 py-2.5 rounded-lg border border-[#E2E8F0] text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] transition" />
-                  <p className="text-xs text-[#94A3B8] mt-1">실업급여 자격(180일 이상)·금액 산정에 사용됩니다.</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[#1E293B] mb-2">비자발적 이직 여부</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[{ v: 'yes', l: '비자발적 (권고사직·해고·폐업 등)' }, { v: 'no', l: '자발적 (자진 퇴사)' }].map(({ v, l }) => (
-                      <button key={v} type="button" onClick={() => pick('separation', v)}
-                        className={`py-2.5 px-4 rounded-lg border text-sm font-medium transition-colors text-left
-                          ${form.separation === v ? 'border-[#2563EB] bg-[#EFF6FF] text-[#2563EB]' : 'border-[#E2E8F0] text-[#475569] hover:border-[#DBEAFE]'}`}>
-                        {l}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {crisis === 'caregiving' && (
-              <div>
-                <label className="block text-sm font-medium text-[#1E293B] mb-1.5">장기요양 등급</label>
-                <select value={form.careGrade} onChange={e => pick('careGrade', e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-[#E2E8F0] text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] transition bg-white">
-                  {CARE_GRADE_OPTIONS.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
-                </select>
-                <p className="text-xs text-[#94A3B8] mt-1">노인장기요양보험 재가급여 월 지원액 산정에 사용됩니다.</p>
-              </div>
-            )}
-
+            {/* 위기 유형별로 마이데이터에서 자동으로 불러오는 값 안내 */}
             {CRISIS_FIELD_INFO[crisis] && (
               <div className="px-4 py-3 bg-[#F0F9FF] border border-[#BAE6FD] rounded-lg text-sm text-[#0369A1]">
                 {CRISIS_FIELD_INFO[crisis]}
@@ -298,7 +239,7 @@ export default function DiagnosisPage() {
       {step === 3 && (
         <div>
           <h2 className="text-2xl font-bold text-[#1E293B] mb-2">마이데이터를 확인해주세요</h2>
-          <p className="text-[#64748B] mb-8">분석에 포함할 항목을 켜고, 핵심 수치를 직접 수정할 수 있습니다.</p>
+          <p className="text-[#64748B] mb-8">분석에 포함할 항목을 켜고, 핵심 수치를 직접 수정할 수 있습니다. 소득·계좌·위기별 정보는 여기서 자동으로 불러옵니다.</p>
           <MyDataSelector persona={persona} onChange={setFilteredMyData} />
           <div className="flex gap-3 mt-8">
             <button onClick={() => setStep(2)}
