@@ -72,6 +72,12 @@ public class User implements UserDetails {
     @Column
     private LocalDateTime lastLoginAt;
 
+    @Column(name = "region_ctpv", length = 60)
+    private String regionCtpv;
+
+    @Column(name = "region_sgg", length = 60)
+    private String regionSgg;
+
     // ------------------------------------------------------------------ //
     //  UserDetails contract
     // ------------------------------------------------------------------ //
@@ -127,6 +133,11 @@ public class User implements UserDetails {
 
     public void updatePersonaType(PersonaType personaType) {
         this.personaType = personaType;
+    }
+
+    public void updateRegion(String regionCtpv, String regionSgg) {
+        this.regionCtpv = regionCtpv;
+        this.regionSgg = regionSgg;
     }
 
     public void deactivate() {

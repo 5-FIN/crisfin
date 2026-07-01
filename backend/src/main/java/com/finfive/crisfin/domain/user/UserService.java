@@ -41,6 +41,8 @@ public class UserService implements UserDetailsService {
                 .email(request.getEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .nickname(request.getNickname())
+                .regionCtpv(request.getRegionCtpv())
+                .regionSgg(request.getRegionSgg())
                 .role(UserRole.USER)
                 .isActive(true)
                 .build();
