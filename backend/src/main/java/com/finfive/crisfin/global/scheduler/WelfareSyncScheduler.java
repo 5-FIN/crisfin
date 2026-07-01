@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -17,8 +18,8 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Scheduled job that pulls welfare-benefit data from the external Government
- * Welfare API and upserts it into the local {@code welfare_benefits} table.
+ * Scheduled job that pulls welfare-benefit data from the LocalGovernment welfare
+ * API and upserts it into the local {@code welfare_benefits} table.
  *
  * <p>Runs daily at 03:00 (server local time). If the API key is not configured
  * the job logs and skips rather than raising an error. All exceptions are caught
@@ -34,93 +35,124 @@ public class WelfareSyncScheduler {
     private final PolicyIndexingService policyIndexingService;
 
     /**
-     * Synchronises welfare benefits from the external API.
+     * Scheduled entry point. Delegates to {@link #runSync()} so the same logic can
+     * be triggered manually (e.g. via the admin endpoint).
      *
-     * <p>Execution policy:
-     * <ul>
-     *   <li>Skip entirely when the API key is blank (dev / CI environments).</li>
-     *   <li>Upsert by {@code externalServiceId}: update existing rows, insert new ones.</li>
-     *   <li>Catch all exceptions and log — never re-throw to prevent scheduler thread death.</li>
-     * </ul>
+     * <p>All exceptions are caught and logged — never re-thrown — to prevent the
+     * {@code @Scheduled} executor from suppressing future executions.
      */
     @Scheduled(cron = "0 0 3 * * *")
     public void syncWelfareBenefits() {
+        try {
+            runSync();
+        } catch (Exception ex) {
+            log.error("[WelfareSyncScheduler] Welfare sync failed: {}", ex.getMessage(), ex);
+        }
+    }
+
+    /**
+     * Synchronises welfare benefits from the external API and returns the number of
+     * records processed.
+     *
+     * <p>Execution policy:
+     * <ul>
+     *   <li>Skip entirely when the API key is blank (dev / CI environments) — returns 0.</li>
+     *   <li>Upsert by {@code externalServiceId}: update existing rows, insert new ones.</li>
+     *   <li>Rebuild the RAG index afterwards, isolated so an index failure cannot break the sync.</li>
+     * </ul>
+     *
+     * @return number of welfare records upserted (0 when skipped or no data)
+     */
+    public int runSync() {
         // Guard: skip when no API key is configured (local / CI environments)
         if (!welfareApiClient.isConfigured()) {
             log.info("[WelfareSyncScheduler] API key is not configured — skipping welfare sync.");
-            return;
+            return 0;
         }
 
         log.info("[WelfareSyncScheduler] Starting welfare benefits sync ...");
 
-        try {
-            WelfareApiResponse response = welfareApiClient.getWelfareBenefits(1, 100);
-            List<WelfareItem> items = response.getData();
+        WelfareApiResponse response = welfareApiClient.getWelfareBenefits(1, 100);
+        List<WelfareItem> items = response.getData();
 
-            if (items == null || items.isEmpty()) {
-                log.warn("[WelfareSyncScheduler] External API returned 0 items — nothing to sync.");
-                return;
-            }
-
-            LocalDateTime syncedAt = LocalDateTime.now();
-            List<WelfareBenefit> toSave = new ArrayList<>(items.size());
-
-            for (WelfareItem item : items) {
-                WelfareBenefit entity = welfareBenefitRepository
-                        .findByExternalServiceId(item.getSvcId())
-                        .orElse(null);
-
-                if (entity != null) {
-                    // Update existing record — persisted explicitly via saveAll below
-                    entity.update(
-                            item.getSrvNm(),
-                            item.getSvcSumry(),
-                            item.getTgtrDtlCn(),
-                            item.getSlctCrtDvCd(),
-                            item.getAplyMtdCn(),
-                            item.getSvcUrl(),
-                            item.getJrsdInstNm(),
-                            /* contact */ null,
-                            /* crisisTags — enriched in a later step */ Collections.emptyList(),
-                            syncedAt
-                    );
-                    toSave.add(entity);
-                } else {
-                    toSave.add(WelfareBenefit.builder()
-                            .externalServiceId(item.getSvcId())
-                            .serviceName(item.getSrvNm())
-                            .summary(item.getSvcSumry())
-                            .targetDescription(item.getTgtrDtlCn())
-                            .selectionCriteria(item.getSlctCrtDvCd())
-                            .applyMethod(item.getAplyMtdCn())
-                            .applyUrl(item.getSvcUrl())
-                            .ministryName(item.getJrsdInstNm())
-                            .contact(null)
-                            .crisisTags(Collections.emptyList())
-                            .isActive(true)
-                            .lastSyncedAt(syncedAt)
-                            .build());
-                }
-            }
-
-            welfareBenefitRepository.saveAll(toSave);
-
-            log.info("[WelfareSyncScheduler] Welfare sync complete — {} record(s) processed.", toSave.size());
-
-            // Rebuild the RAG policy index from the freshly-synced data. Isolated in its own
-            // try/catch so an embedding/index failure can never break the welfare sync.
-            try {
-                int indexed = policyIndexingService.reindexAll();
-                log.info("[WelfareSyncScheduler] Policy reindex complete — {} chunk(s).", indexed);
-            } catch (Exception ragEx) {
-                log.error("[WelfareSyncScheduler] Policy reindex failed (welfare sync unaffected): {}",
-                        ragEx.getMessage(), ragEx);
-            }
-
-        } catch (Exception ex) {
-            // Log but do NOT re-throw: prevents the @Scheduled executor from suppressing
-            // future executions due to an uncaught exception on the scheduler thread.
-            log.error("[WelfareSyncScheduler] Welfare sync failed: {}", ex.getMessage(), ex);
+        if (items == null || items.isEmpty()) {
+            log.warn("[WelfareSyncScheduler] External API returned 0 items — nothing to sync.");
+            return 0;
         }
+
+        LocalDateTime syncedAt = LocalDateTime.now();
+        List<WelfareBenefit> toSave = new ArrayList<>(items.size());
+
+        for (WelfareItem item : items) {
+            String targetDescription = buildTargetDescription(item);
+
+            WelfareBenefit entity = welfareBenefitRepository
+                    .findByExternalServiceId(item.getServId())
+                    .orElse(null);
+
+            if (entity != null) {
+                // Update existing record — persisted explicitly via saveAll below
+                entity.update(
+                        item.getServNm(),
+                        item.getServDgst(),
+                        targetDescription,
+                        item.getIntrsThemaNmArray(),
+                        item.getAplyMtdNm(),
+                        item.getServDtlLink(),
+                        item.getBizChrDeptNm(),
+                        /* contact */ null,
+                        /* crisisTags — enriched in a later step */ Collections.emptyList(),
+                        syncedAt
+                );
+                toSave.add(entity);
+            } else {
+                toSave.add(WelfareBenefit.builder()
+                        .externalServiceId(item.getServId())
+                        .serviceName(item.getServNm())
+                        .summary(item.getServDgst())
+                        .targetDescription(targetDescription)
+                        .selectionCriteria(item.getIntrsThemaNmArray())
+                        .applyMethod(item.getAplyMtdNm())
+                        .applyUrl(item.getServDtlLink())
+                        .ministryName(item.getBizChrDeptNm())
+                        .contact(null)
+                        .crisisTags(Collections.emptyList())
+                        .isActive(true)
+                        .lastSyncedAt(syncedAt)
+                        .build());
+            }
+        }
+
+        welfareBenefitRepository.saveAll(toSave);
+
+        log.info("[WelfareSyncScheduler] Welfare sync complete — {} record(s) processed.", toSave.size());
+
+        // Rebuild the RAG policy index from the freshly-synced data. Isolated in its own
+        // try/catch so an embedding/index failure can never break the welfare sync.
+        try {
+            int indexed = policyIndexingService.reindexAll();
+            log.info("[WelfareSyncScheduler] Policy reindex complete — {} chunk(s).", indexed);
+        } catch (Exception ragEx) {
+            log.error("[WelfareSyncScheduler] Policy reindex failed (welfare sync unaffected): {}",
+                    ragEx.getMessage(), ragEx);
+        }
+
+        return toSave.size();
+    }
+
+    /**
+     * Builds the {@code targetDescription} from region and life-cycle fields.
+     * Format: {@code "[지역] {ctpvNm} {sggNm}"} optionally followed by
+     * {@code " / [생애주기] {lifeNmArray}"} when the life-cycle field is present.
+     */
+    private String buildTargetDescription(WelfareItem item) {
+        StringBuilder sb = new StringBuilder("[지역] ")
+                .append(item.getCtpvNm() != null ? item.getCtpvNm() : "")
+                .append(" ")
+                .append(item.getSggNm() != null ? item.getSggNm() : "");
+        if (StringUtils.hasText(item.getLifeNmArray())) {
+            sb.append(" / [생애주기] ").append(item.getLifeNmArray());
+        }
+        return sb.toString();
     }
 }
