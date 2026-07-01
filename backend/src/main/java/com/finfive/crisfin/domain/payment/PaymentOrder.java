@@ -47,6 +47,10 @@ public class PaymentOrder {
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
 
+    /** 구매한 요금제 코드({@code PaymentPlan.name()}). */
+    @Column(length = 30)
+    private String plan;
+
     /** Marks the order as paid. Idempotent-safe: callers should check status first. */
     public void markPaid() {
         this.status = OrderStatus.PAID;

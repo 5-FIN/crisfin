@@ -70,10 +70,7 @@ welfare:
   # 빈 DB 첫 부팅 시 자동 동기화 (배포/신규 볼륨에서 스스로 채움).
   sync:
     on-startup: true
-# Paid analysis (mock payment) — price in KRW, immediate entitlement on confirm.
-payment:
-  price: ${PAYMENT_PRICE:9900}
-  plan: ${PAYMENT_PLAN:STANDARD}
+# Paid analysis (mock payment) — 요금제/가격/유효기간/이용 횟수는 PaymentPlan enum이 정의한다.
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

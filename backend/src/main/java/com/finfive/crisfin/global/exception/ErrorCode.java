@@ -13,6 +13,7 @@ public enum ErrorCode {
     PERSONA_NOT_FOUND(400, "PERSONA_NOT_FOUND", "요청한 페르소나를 찾을 수 없습니다."),
     PII_DETECTED(400, "PII_DETECTED", "개인 식별 정보(PII)가 감지되었습니다. 입력을 수정해 주세요."),
     PROMPT_INJECTION_DETECTED(400, "PROMPT_INJECTION_DETECTED", "프롬프트 인젝션 시도가 감지되었습니다."),
+    PLAN_NOT_FOUND(400, "PLAN_NOT_FOUND", "요청한 요금제를 찾을 수 없습니다."),
 
     // 401 – Authentication
     TOKEN_EXPIRED(401, "TOKEN_EXPIRED", "액세스 토큰이 만료되었습니다."),

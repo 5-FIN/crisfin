@@ -1,8 +1,10 @@
 package com.finfive.crisfin.domain.payment;
 
+import com.finfive.crisfin.domain.payment.dto.CheckoutRequest;
 import com.finfive.crisfin.domain.payment.dto.CheckoutResponse;
 import com.finfive.crisfin.domain.payment.dto.ConfirmRequest;
 import com.finfive.crisfin.domain.payment.dto.EntitlementResponse;
+import com.finfive.crisfin.domain.payment.dto.PlanResponse;
 import com.finfive.crisfin.domain.user.User;
 import com.finfive.crisfin.global.exception.CrisfinException;
 import com.finfive.crisfin.global.exception.ErrorCode;
@@ -14,11 +16,14 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 /**
  * Payments / entitlement endpoints. All require authentication.
  *
  * <ul>
- *   <li>{@code POST /api/v1/payments/checkout}    – create a pending order.</li>
+ *   <li>{@code GET  /api/v1/payments/plans}        – purchasable plan catalog.</li>
+ *   <li>{@code POST /api/v1/payments/checkout}    – create a pending order for a plan.</li>
  *   <li>{@code POST /api/v1/payments/confirm}     – settle order, activate entitlement.</li>
  *   <li>{@code GET  /api/v1/payments/entitlement} – current entitlement status.</li>
  * </ul>
@@ -30,11 +35,17 @@ public class PaymentController {
 
     private final PaymentService paymentService;
 
+    @GetMapping("/plans")
+    public ResponseEntity<ApiResponse<List<PlanResponse>>> plans() {
+        return ResponseEntity.ok(ApiResponse.ok(paymentService.plans()));
+    }
+
     @PostMapping("/checkout")
     public ResponseEntity<ApiResponse<CheckoutResponse>> checkout(
+            @Valid @RequestBody CheckoutRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
         Long userId = requireUserId(userDetails);
-        return ResponseEntity.ok(ApiResponse.ok(paymentService.checkout(userId)));
+        return ResponseEntity.ok(ApiResponse.ok(paymentService.checkout(userId, request.getPlan())));
     }
 
     @PostMapping("/confirm")
