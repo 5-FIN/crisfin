@@ -8,6 +8,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.stream.Collectors;
 
@@ -49,6 +50,23 @@ public class GlobalExceptionHandler {
                 .build();
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    /**
+     * Unknown route / missing static resource → 404 (not a 500).
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNoResourceFound(NoResourceFoundException ex) {
+        log.warn("[NotFound] resourcePath={}", ex.getResourcePath());
+        ApiResponse<Void> body = ApiResponse.<Void>builder()
+                .success(false)
+                .error(ApiResponse.ErrorInfo.builder()
+                        .code("NOT_FOUND")
+                        .message("요청한 리소스를 찾을 수 없습니다.")
+                        .detail(ex.getResourcePath())
+                        .build())
+                .build();
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
     }
 
     /**
