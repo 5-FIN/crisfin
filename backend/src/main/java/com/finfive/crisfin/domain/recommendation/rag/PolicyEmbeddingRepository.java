@@ -30,6 +30,13 @@ public class PolicyEmbeddingRepository {
         em.createNativeQuery("DELETE FROM policy_embeddings").executeUpdate();
     }
 
+    /** Returns the number of embedding rows currently stored. */
+    @Transactional(readOnly = true)
+    public long count() {
+        Object result = em.createNativeQuery("SELECT COUNT(*) FROM policy_embeddings").getSingleResult();
+        return ((Number) result).longValue();
+    }
+
     /**
      * Inserts one embedding row.
      *

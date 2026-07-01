@@ -55,6 +55,9 @@ embedding:
     dimensions: 1536
   rag:
     top-k: ${RAG_TOP_K:5}
+    # 앱 기동 시 policy_embeddings가 비어 있고 임베딩이 활성화돼 있으면 1회 자동 색인.
+    # 이미 채워져 있으면 건너뛰므로 재시작해도 중복 임베딩/비용이 없다.
+    auto-index-on-startup: ${RAG_AUTO_INDEX_ON_STARTUP:true}
 welfare:
   api:
     key: ${PUBLIC_DATA_API_KEY:}
