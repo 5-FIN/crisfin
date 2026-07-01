@@ -26,7 +26,7 @@ public class OpenAiProvider implements LlmProvider {
     @Value("${llm.openai.api-key:}")
     private String apiKey;
 
-    @Value("${llm.openai.model:gpt-4o}")
+    @Value("${llm.openai.model:gpt-4o-mini}")
     private String model;
 
     private static final String OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
@@ -66,7 +66,7 @@ public class OpenAiProvider implements LlmProvider {
             int completionTokens = root.path("usage").path("completion_tokens").asInt(0);
             String finishReason = root.path("choices").get(0).path("finish_reason").asText("stop");
 
-            log.info("[OpenAiProvider] success — promptTokens={}, completionTokens={}", promptTokens, completionTokens);
+            log.info("[OpenAiProvider] success — model={}, promptTokens={}, completionTokens={}", model, promptTokens, completionTokens);
 
             return LlmResponse.builder()
                     .content(content)
