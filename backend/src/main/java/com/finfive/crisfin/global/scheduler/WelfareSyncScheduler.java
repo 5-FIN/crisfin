@@ -51,7 +51,7 @@ public class WelfareSyncScheduler {
     private int pageSize;
 
     /** 상세조회 병렬 처리 스레드 수 (외부 API TPS 한도를 넘지 않는 선). */
-    @Value("${welfare.api.detail-concurrency:8}")
+    @Value("${welfare.api.detail-concurrency:4}")
     private int detailConcurrency;
 
     /**
@@ -185,9 +185,12 @@ public class WelfareSyncScheduler {
         // task modifies a distinct entity object, so there is no shared-state race; failures
         // are isolated per item and only skip that one. Bounded concurrency keeps us under
         // the external API's TPS limit.
+        // 증분 조회: servId가 있고 아직 상세 본문이 없는 항목만 조회한다. 이미 채워진 항목은
+        // 건너뛰어 매 동기화마다 1000건을 재조회하지 않는다(속도·외부 API 쿼터 절약).
         List<WelfareBenefit> withServId = new ArrayList<>();
         for (WelfareBenefit e : toSave) {
-            if (StringUtils.hasText(e.getExternalServiceId())) {
+            if (StringUtils.hasText(e.getExternalServiceId())
+                    && !StringUtils.hasText(e.getDetailContent())) {
                 withServId.add(e);
             }
         }
