@@ -20,4 +20,10 @@ public class SignupRequest {
 
     @NotBlank(message = "닉네임은 필수입니다.")
     private String nickname;
+
+    /** 선택 입력: 사용자 지역(시도). 지역 기반 복지 추천에 사용. */
+    private String regionCtpv;
+
+    /** 선택 입력: 사용자 지역(시군구). 지역 기반 복지 추천에 사용. */
+    private String regionSgg;
 }
