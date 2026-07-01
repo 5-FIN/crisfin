@@ -43,6 +43,12 @@ export interface UserResponse {
   regionSgg?: string | null
 }
 
+export interface UpdateProfileRequest {
+  nickname: string
+  regionCtpv?: string
+  regionSgg?: string
+}
+
 export interface LoginRequest {
   email: string
   password: string

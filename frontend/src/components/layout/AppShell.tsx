@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, CreditCard, Gift, CheckSquare,
-  History, Menu, LogOut, ChevronRight, BookOpen,
+  History, Menu, LogOut, ChevronRight, BookOpen, Settings,
 } from 'lucide-react'
 import { cn, tokenStore, analysisStore, CRISIS_LABELS } from '@/lib/utils'
 
@@ -16,6 +16,7 @@ const NAV = [
   { href: '/benefits',  icon: Gift,             label: '혜택 매처' },
   { href: '/tasks',     icon: CheckSquare,      label: '액션 체크리스트' },
   { href: '/history',   icon: History,          label: '히스토리' },
+  { href: '/settings',  icon: Settings,         label: '설정' },
 ]
 
 function SidebarNav({

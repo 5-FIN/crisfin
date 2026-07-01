@@ -7,7 +7,7 @@ import type {
   AnalysisRequest, AnalysisResultResponse, ReinferRequest,
   WelfareBenefitResponse,
   CheckoutResponse, EntitlementResponse,
-  UserResponse,
+  UserResponse, UpdateProfileRequest,
 } from '@/lib/types'
 
 /* ── 저수준 fetch (토큰 갱신 없음) ── */
@@ -91,6 +91,10 @@ export const authApi = {
 /* ── Users ── */
 export const usersApi = {
   me: () => request<UserResponse>('/api/v1/users/me'),
+  updateMe: (data: UpdateProfileRequest) =>
+    request<UserResponse>('/api/v1/users/me', {
+      method: 'PUT', body: JSON.stringify(data),
+    }),
 }
 
 /* ── Crisis ── */
