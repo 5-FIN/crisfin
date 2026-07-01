@@ -1,6 +1,8 @@
 package com.finfive.crisfin.domain.recommendation.rag;
 
+import com.finfive.crisfin.domain.welfare.WelfareBenefitRepository;
 import com.finfive.crisfin.infra.embedding.EmbeddingProvider;
+import com.finfive.crisfin.infra.openapi.WelfareApiClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,9 +36,14 @@ public class PolicyIndexBootstrap implements ApplicationRunner {
     private final EmbeddingProvider embeddingProvider;
     private final PolicyEmbeddingRepository policyEmbeddingRepository;
     private final PolicyIndexingService policyIndexingService;
+    private final WelfareBenefitRepository welfareBenefitRepository;
+    private final WelfareApiClient welfareApiClient;
 
     @Value("${embedding.rag.auto-index-on-startup:true}")
     private boolean autoIndexOnStartup;
+
+    @Value("${welfare.sync.on-startup:true}")
+    private boolean welfareSyncOnStartup;
 
     @Override
     public void run(ApplicationArguments args) {
@@ -53,6 +60,14 @@ public class PolicyIndexBootstrap implements ApplicationRunner {
         if (existing > 0) {
             log.info("[PolicyIndexBootstrap] policy index already populated ({} row(s)) — skipping startup index.",
                     existing);
+            return;
+        }
+
+        // Defer to WelfareSyncBootstrap: on an empty DB with the welfare API configured, the
+        // welfare startup sync will populate the source table AND reindex at the end. Skipping
+        // here avoids a redundant (and potentially concurrent) reindex on first boot.
+        if (welfareSyncOnStartup && welfareApiClient.isConfigured() && welfareBenefitRepository.count() == 0) {
+            log.info("[PolicyIndexBootstrap] welfare startup sync will build the index — skipping startup index.");
             return;
         }
 
