@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +42,14 @@ public class OpenAiEmbeddingProvider implements EmbeddingProvider {
     @Value("${embedding.openai.dimensions:1536}")
     private int dimensions;
 
+    /**
+     * Max inputs per embeddings request. OpenAI caps a single request at 2048 array items
+     * (and ~300k tokens); we batch well under that so a large reindex (수천 청크) does not
+     * exceed the per-request limit.
+     */
+    @Value("${embedding.openai.batch-size:200}")
+    private int batchSize;
+
     private static final String EMBEDDINGS_URL = "https://api.openai.com/v1/embeddings";
 
     @Override
@@ -67,6 +76,19 @@ public class OpenAiEmbeddingProvider implements EmbeddingProvider {
             return List.of();
         }
 
+        // Batch to stay under the OpenAI per-request limit (array/token). Batches are
+        // embedded sequentially and concatenated in original order.
+        int size = Math.max(1, batchSize);
+        List<float[]> all = new ArrayList<>(texts.size());
+        for (int start = 0; start < texts.size(); start += size) {
+            int end = Math.min(start + size, texts.size());
+            all.addAll(embedBatch(texts.subList(start, end)));
+        }
+        return all;
+    }
+
+    /** Embeds a single batch (≤ batchSize) in one API request, preserving request order. */
+    private List<float[]> embedBatch(List<String> texts) {
         Map<String, Object> body = Map.of(
                 "model", model,
                 "input", texts
