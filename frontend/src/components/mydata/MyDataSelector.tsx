@@ -139,6 +139,9 @@ export default function MyDataSelector({ persona, onChange }: Props) {
         if (data[dk] !== undefined) out[dk] = data[dk]
       }
     }
+    // 공공 마이데이터(위기별 필수값)는 토글 대상이 아니라 항상 포함 —
+    // 진단 폼이 손입력 대신 이 값으로 applicantProfile을 채운다.
+    if (data.publicData !== undefined) out.publicData = data.publicData
     return out
   }, [enabled, data])
 

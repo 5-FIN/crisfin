@@ -1,26 +1,26 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { PauseCircle, AlertTriangle, Info } from 'lucide-react'
 import { analysisStore, fmt, riskBadge } from '@/lib/utils'
+import NoAnalysisEmptyState from '@/components/common/NoAnalysisEmptyState'
 import type { AnalysisResultResponse, HoldableItem } from '@/lib/types'
 
 type Tab = 'holdable' | 'urgent'
 
 export default function PaymentsPage() {
-  const router = useRouter()
   const [analysis, setAnalysis] = useState<AnalysisResultResponse | null>(null)
+  const [loaded, setLoaded] = useState(false)
   const [tab, setTab] = useState<Tab>('urgent')
   const [expanded, setExpanded] = useState<number | null>(null)
 
   useEffect(() => {
-    const data = analysisStore.load()
-    if (!data) { router.push('/diagnosis'); return }
-    setAnalysis(data)
-  }, [router])
+    setAnalysis(analysisStore.load())
+    setLoaded(true)
+  }, [])
 
-  if (!analysis) return null
+  if (!loaded) return null
+  if (!analysis) return <NoAnalysisEmptyState title="납부 관리" />
 
   const { holdable, todos } = analysis.result
   const urgentTodos = todos.filter(t => t.priority === 'HIGH')

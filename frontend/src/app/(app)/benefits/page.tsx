@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { ExternalLink, ChevronDown, ChevronUp } from 'lucide-react'
 import { analysisStore, fmt, priorityBadge } from '@/lib/utils'
 import { welfareApi } from '@/lib/api'
+import NoAnalysisEmptyState from '@/components/common/NoAnalysisEmptyState'
 import type { AnalysisResultResponse, WelfareBenefitResponse, ReceivableItem, CrisisType } from '@/lib/types'
 
 const NEEDS_MORE_INPUT_BADGE = { bg: '#FFF7ED', color: '#EA580C', border: '#FFEDD5' }
@@ -12,8 +12,8 @@ const NEEDS_MORE_INPUT_BADGE = { bg: '#FFF7ED', color: '#EA580C', border: '#FFED
 type Category = '전체' | '보험/환급' | '복지제도'
 
 export default function BenefitsPage() {
-  const router = useRouter()
   const [analysis, setAnalysis]   = useState<AnalysisResultResponse | null>(null)
+  const [loaded, setLoaded]       = useState(false)
   const [welfare, setWelfare]     = useState<WelfareBenefitResponse[]>([])
   const [filter, setFilter]       = useState<Category>('전체')
   const [expanded, setExpanded]   = useState<string | null>(null)
@@ -21,8 +21,9 @@ export default function BenefitsPage() {
 
   useEffect(() => {
     const data = analysisStore.load()
-    if (!data) { router.push('/diagnosis'); return }
     setAnalysis(data)
+    setLoaded(true)
+    if (!data) return
 
     // 복지 API 호출
     setLoadingWelfare(true)
@@ -30,9 +31,10 @@ export default function BenefitsPage() {
       .then(res => setWelfare(res.content))
       .catch(() => {/* API 미연결 시 무시 */})
       .finally(() => setLoadingWelfare(false))
-  }, [router])
+  }, [])
 
-  if (!analysis) return null
+  if (!loaded) return null
+  if (!analysis) return <NoAnalysisEmptyState title="혜택 매처" />
 
   const { receivable, actions, summary, needsMoreInput } = analysis.result
 

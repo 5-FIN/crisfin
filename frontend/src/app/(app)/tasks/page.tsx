@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { CheckCircle, Circle } from 'lucide-react'
 import { analysisStore, taskStore, priorityBadge } from '@/lib/utils'
+import NoAnalysisEmptyState from '@/components/common/NoAnalysisEmptyState'
 import type { AnalysisResultResponse, TimelinePhase } from '@/lib/types'
 
 /* 구간 색상 팔레트 (버킷 순서대로 순환) */
@@ -41,18 +41,19 @@ function buildGroups(timeline: TimelinePhase[]): ChecklistGroup[] {
 }
 
 export default function TasksPage() {
-  const router = useRouter()
   const [analysis, setAnalysis] = useState<AnalysisResultResponse | null>(null)
+  const [loaded, setLoaded]     = useState(false)
   const [done, setDone]         = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     const data = analysisStore.load()
-    if (!data) { router.push('/diagnosis'); return }
     setAnalysis(data)
-    setDone(taskStore.load(data.id))
-  }, [router])
+    setLoaded(true)
+    if (data) setDone(taskStore.load(data.id))
+  }, [])
 
-  if (!analysis) return null
+  if (!loaded) return null
+  if (!analysis) return <NoAnalysisEmptyState title="액션 체크리스트" />
 
   const timeline = analysis.result.timeline ?? []
   const groups   = buildGroups(timeline)
