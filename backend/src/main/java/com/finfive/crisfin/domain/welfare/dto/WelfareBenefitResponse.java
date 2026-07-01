@@ -18,6 +18,8 @@ public class WelfareBenefitResponse {
     private final String applyUrl;
     private final String ministryName;
     private final String contact;
+    private final String ctpvNm;
+    private final String sggNm;
     private final List<String> crisisTags;
     private final String externalServiceId;
     private final String selectionCriteria;
@@ -34,6 +36,8 @@ public class WelfareBenefitResponse {
                 .applyUrl(benefit.getApplyUrl())
                 .ministryName(benefit.getMinistryName())
                 .contact(benefit.getContact())
+                .ctpvNm(benefit.getCtpvNm())
+                .sggNm(benefit.getSggNm())
                 .crisisTags(benefit.getCrisisTags())
                 .externalServiceId(benefit.getExternalServiceId())
                 .selectionCriteria(benefit.getSelectionCriteria())
