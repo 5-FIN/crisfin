@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { ExternalLink, ChevronDown, ChevronUp } from 'lucide-react'
 import { analysisStore, fmt, priorityBadge } from '@/lib/utils'
-import { welfareApi } from '@/lib/api'
+import { welfareApi, usersApi } from '@/lib/api'
 import NoAnalysisEmptyState from '@/components/common/NoAnalysisEmptyState'
 import type { AnalysisResultResponse, WelfareBenefitResponse, ReceivableItem, CrisisType } from '@/lib/types'
 
@@ -18,6 +18,7 @@ export default function BenefitsPage() {
   const [filter, setFilter]       = useState<Category>('전체')
   const [expanded, setExpanded]   = useState<string | null>(null)
   const [loadingWelfare, setLoadingWelfare] = useState(false)
+  const [region, setRegion]       = useState<string | null>(null)
 
   useEffect(() => {
     const data = analysisStore.load()
@@ -25,9 +26,17 @@ export default function BenefitsPage() {
     setLoaded(true)
     if (!data) return
 
-    // 복지 API 호출
+    // 사용자 지역 조회 후 복지 API 호출 (지역 우선)
     setLoadingWelfare(true)
-    welfareApi.list({ crisisType: data.crisisType as CrisisType, size: 20 })
+    usersApi.me()
+      .then(me => me.regionCtpv ?? null)
+      .catch(() => null) // 미인증(401 등)은 조용히 무시
+      .then(userRegion => {
+        setRegion(userRegion)
+        return userRegion
+          ? welfareApi.list({ ctpvNm: userRegion, size: 20 })
+          : welfareApi.list({ crisisType: data.crisisType as CrisisType, size: 20 })
+      })
       .then(res => setWelfare(res.content))
       .catch(() => {/* API 미연결 시 무시 */})
       .finally(() => setLoadingWelfare(false))
@@ -217,7 +226,7 @@ export default function BenefitsPage() {
       {filteredWelfare.length > 0 && (
         <div>
           <h2 className="text-sm font-semibold text-[#475569] uppercase tracking-wide mb-3">
-            정부 복지 제도 ({filteredWelfare.length})
+            {region ? `내 지역(${region}) 복지 제도` : '정부 복지 제도'} ({filteredWelfare.length})
           </h2>
           <div className="space-y-3">
             {filteredWelfare.map(item => {
@@ -231,7 +240,14 @@ export default function BenefitsPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-[#1E293B] mb-0.5 truncate">{item.serviceName}</div>
-                      <div className="text-xs text-[#64748B]">{item.ministryName}</div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs text-[#64748B]">{item.ministryName}</span>
+                        {(item.ctpvNm || item.sggNm) && (
+                          <span className="text-xs px-1.5 py-0.5 rounded-full bg-[#EFF6FF] text-[#2563EB] border border-[#DBEAFE]">
+                            {[item.ctpvNm, item.sggNm].filter(Boolean).join(' ')}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     {isOpen ? <ChevronUp size={16} className="text-[#94A3B8]" /> : <ChevronDown size={16} className="text-[#94A3B8]" />}
                   </button>
