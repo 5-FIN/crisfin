@@ -61,7 +61,7 @@ embedding:
 welfare:
   api:
     key: ${PUBLIC_DATA_API_KEY:}
-    base-url: https://api.odcloud.kr/api/15090532/v1
+    base-url: http://apis.data.go.kr/B554287/LocalGovernmentWelfareInformations
 # Paid analysis (mock payment) — price in KRW, immediate entitlement on confirm.
 payment:
   price: ${PAYMENT_PRICE:9900}
