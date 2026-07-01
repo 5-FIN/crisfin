@@ -7,6 +7,7 @@ import type {
   AnalysisRequest, AnalysisResultResponse, ReinferRequest,
   WelfareBenefitResponse,
   CheckoutResponse, EntitlementResponse,
+  UserResponse,
 } from '@/lib/types'
 
 /* ── 저수준 fetch (토큰 갱신 없음) ── */
@@ -87,6 +88,11 @@ export const authApi = {
     }),
 }
 
+/* ── Users ── */
+export const usersApi = {
+  me: () => request<UserResponse>('/api/v1/users/me'),
+}
+
 /* ── Crisis ── */
 export const crisisApi = {
   types: () => request<CrisisTypeResponse[]>('/api/v1/crisis/types'),
@@ -143,9 +149,11 @@ export const paymentApi = {
 
 /* ── Welfare ── */
 export const welfareApi = {
-  list: (params?: { crisisType?: CrisisType; page?: number; size?: number }) => {
+  list: (params?: { crisisType?: CrisisType; ctpvNm?: string; sggNm?: string; page?: number; size?: number }) => {
     const qs = new URLSearchParams()
     if (params?.crisisType) qs.set('crisisType', params.crisisType)
+    if (params?.ctpvNm) qs.set('ctpvNm', params.ctpvNm)
+    if (params?.sggNm) qs.set('sggNm', params.sggNm)
     if (params?.page != null) qs.set('page', String(params.page))
     if (params?.size != null) qs.set('size', String(params.size))
     return request<PageResponse<WelfareBenefitResponse>>(
