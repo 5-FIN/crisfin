@@ -102,12 +102,21 @@ class AnalysisControllerTest {
     }
 
     @Test
-    void getResult_delegatesToService() {
-        when(analysisService.getResult(7L)).thenReturn(result);
+    void getResult_authenticated_delegatesToServiceWithUserId() {
+        when(analysisService.getResult(7L, 1L)).thenReturn(result);
 
-        ResponseEntity<ApiResponse<AnalysisResultResponse>> res = controller.getResult(7L);
+        ResponseEntity<ApiResponse<AnalysisResultResponse>> res = controller.getResult(7L, user(1L));
 
         assertThat(res.getStatusCode().value()).isEqualTo(200);
         assertThat(res.getBody().getData()).isSameAs(result);
+    }
+
+    @Test
+    void getResult_anonymous_throwsUnauthorized() {
+        // 로그인 없이 결과 조회 시도 → 401 (IDOR 방지: 익명 접근 차단)
+        assertThatThrownBy(() -> controller.getResult(7L, null))
+                .isInstanceOf(CrisfinException.class)
+                .extracting(e -> ((CrisfinException) e).getErrorCode())
+                .isEqualTo(ErrorCode.UNAUTHORIZED);
     }
 }

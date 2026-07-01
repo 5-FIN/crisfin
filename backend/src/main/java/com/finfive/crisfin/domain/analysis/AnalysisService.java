@@ -201,16 +201,23 @@ public class AnalysisService {
     }
 
     /**
-     * Retrieves a previously saved analysis result by its ID.
+     * Retrieves a previously saved analysis result by its ID, enforcing ownership.
      *
-     * @param id analysis result primary key
+     * <p>Only the user who owns the result may read it. A non-existent id and a result
+     * owned by another user (or an anonymous result with no owner) both raise
+     * {@link ErrorCode#ANALYSIS_NOT_FOUND} — the same response, so callers cannot probe
+     * which ids exist (prevents IDOR / enumeration).</p>
+     *
+     * @param id     analysis result primary key
+     * @param userId the authenticated caller's id (must match the result's owner)
      * @return the corresponding response DTO
-     * @throws CrisfinException with {@link ErrorCode#GUIDE_NOT_FOUND} if not found
+     * @throws CrisfinException with {@link ErrorCode#ANALYSIS_NOT_FOUND} if missing or not owned
      */
     @Transactional(readOnly = true)
-    public AnalysisResultResponse getResult(Long id) {
+    public AnalysisResultResponse getResult(Long id, Long userId) {
         AnalysisResult result = analysisResultRepository.findById(id)
-                .orElseThrow(() -> new CrisfinException(ErrorCode.GUIDE_NOT_FOUND,
+                .filter(r -> r.getUserId() != null && r.getUserId().equals(userId))
+                .orElseThrow(() -> new CrisfinException(ErrorCode.ANALYSIS_NOT_FOUND,
                         "분석 결과를 찾을 수 없습니다. id=" + id));
 
         JsonNode resultNode = objectMapper.valueToTree(result.getResultJson());
