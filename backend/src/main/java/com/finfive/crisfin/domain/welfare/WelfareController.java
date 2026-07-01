@@ -22,20 +22,27 @@ public class WelfareController {
     /**
      * GET /api/v1/welfare/benefits
      *
-     * <p>Returns a paginated list of active welfare benefits. Pass {@code crisisType}
-     * (e.g. {@code UNEMPLOYMENT}, {@code HOSPITALIZATION}) to narrow results by
-     * crisis tag stored in the JSONB column.
+     * <p>Returns a paginated list of active welfare benefits. Pass {@code ctpvNm}
+     * (시도) and/or {@code sggNm} (시군구) to narrow results by region, and/or
+     * {@code crisisType} (e.g. {@code UNEMPLOYMENT}, {@code HOSPITALIZATION}) to
+     * narrow by crisis tag stored in the JSONB column. All filters are optional
+     * and combine (AND).
      *
+     * @param ctpvNm     optional 시도 filter
+     * @param sggNm      optional 시군구 filter
      * @param crisisType optional crisis type filter
      * @param pageable   pagination (default page=0, size=10)
      * @return wrapped page of welfare benefit summaries
      */
     @GetMapping("/benefits")
     public ApiResponse<Page<WelfareBenefitResponse>> getWelfareBenefits(
+            @RequestParam(required = false) String ctpvNm,
+            @RequestParam(required = false) String sggNm,
             @RequestParam(required = false) String crisisType,
             @PageableDefault(size = 10) Pageable pageable) {
 
-        Page<WelfareBenefitResponse> result = welfareService.getWelfareBenefits(crisisType, pageable);
+        Page<WelfareBenefitResponse> result =
+                welfareService.getWelfareBenefits(ctpvNm, sggNm, crisisType, pageable);
         return ApiResponse.ok(result);
     }
 

@@ -40,26 +40,36 @@ class WelfareServiceTest {
     @Test
     void getWelfareBenefits_withCrisisType_filtersByUppercasedTag() {
         when(welfareBenefitRepository
-                .findByIsActiveTrueAndCrisisTagsContaining(eq("UNEMPLOYMENT"), any()))
+                .search(eq(null), eq(null), eq("UNEMPLOYMENT"), any()))
                 .thenReturn(Page.<WelfareBenefit>empty());
 
         // 공백 + 소문자 입력 → trim + 대문자로 정규화돼야 함
         Page<WelfareBenefitResponse> result =
-                welfareService.getWelfareBenefits("  unemployment  ", pageable);
+                welfareService.getWelfareBenefits(null, null, "  unemployment  ", pageable);
 
         assertThat(result.getTotalElements()).isZero();
-        verify(welfareBenefitRepository)
-                .findByIsActiveTrueAndCrisisTagsContaining("UNEMPLOYMENT", pageable);
+        verify(welfareBenefitRepository).search(null, null, "UNEMPLOYMENT", pageable);
     }
 
     @Test
-    void getWelfareBenefits_blankCrisisType_returnsAllActive() {
-        when(welfareBenefitRepository.findByIsActiveTrue(any()))
+    void getWelfareBenefits_blankFilters_passesAllNulls() {
+        when(welfareBenefitRepository.search(eq(null), eq(null), eq(null), any()))
                 .thenReturn(Page.<WelfareBenefit>empty());
 
-        welfareService.getWelfareBenefits("", pageable);
+        welfareService.getWelfareBenefits("", "  ", "", pageable);
 
-        verify(welfareBenefitRepository).findByIsActiveTrue(pageable);
+        verify(welfareBenefitRepository).search(null, null, null, pageable);
+    }
+
+    @Test
+    void getWelfareBenefits_withRegion_trimsAndPassesThrough() {
+        when(welfareBenefitRepository
+                .search(eq("서울특별시"), eq("종로구"), eq(null), any()))
+                .thenReturn(Page.<WelfareBenefit>empty());
+
+        welfareService.getWelfareBenefits("  서울특별시 ", " 종로구 ", null, pageable);
+
+        verify(welfareBenefitRepository).search("서울특별시", "종로구", null, pageable);
     }
 
     @Test
@@ -95,10 +105,11 @@ class WelfareServiceTest {
     void getWelfareBenefits_mapsNonEmptyPage() {
         WelfareBenefit benefit = WelfareBenefit.builder()
                 .id(2L).serviceName("긴급복지").crisisTags(List.of("HOSPITALIZATION")).build();
-        when(welfareBenefitRepository.findByIsActiveTrue(any()))
+        when(welfareBenefitRepository.search(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of(benefit), pageable, 1));
 
-        Page<WelfareBenefitResponse> result = welfareService.getWelfareBenefits(null, pageable);
+        Page<WelfareBenefitResponse> result =
+                welfareService.getWelfareBenefits(null, null, null, pageable);
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).getServiceName()).isEqualTo("긴급복지");
