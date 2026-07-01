@@ -6,7 +6,7 @@ import type {
   PersonaType, CrisisType,
   AnalysisRequest, AnalysisResultResponse, ReinferRequest,
   WelfareBenefitResponse,
-  CheckoutResponse, EntitlementResponse,
+  CheckoutResponse, EntitlementResponse, PlanResponse,
   UserResponse, UpdateProfileRequest,
 } from '@/lib/types'
 
@@ -141,8 +141,12 @@ export const analysisApi = {
 
 /* ── Payments / 이용권 ── */
 export const paymentApi = {
-  checkout: () =>
-    request<CheckoutResponse>('/api/v1/payments/checkout', { method: 'POST' }),
+  plans: () =>
+    request<PlanResponse[]>('/api/v1/payments/plans'),
+  checkout: (plan: string) =>
+    request<CheckoutResponse>('/api/v1/payments/checkout', {
+      method: 'POST', body: JSON.stringify({ plan }),
+    }),
   confirm: (orderUid: string) =>
     request<EntitlementResponse>('/api/v1/payments/confirm', {
       method: 'POST', body: JSON.stringify({ orderUid }),

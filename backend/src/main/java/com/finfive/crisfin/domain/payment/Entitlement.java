@@ -44,18 +44,31 @@ public class Entitlement {
     @Column(name = "expires_at")
     private LocalDateTime expiresAt;
 
+    /** 남은 이용 횟수. {@code null}이면 무제한. */
+    @Column(name = "remaining_uses")
+    private Integer remainingUses;
+
     /** Whether the entitlement currently grants access. */
     public boolean isActive() {
         return status == EntitlementStatus.ACTIVE
-                && (expiresAt == null || expiresAt.isAfter(LocalDateTime.now()));
+                && (expiresAt == null || expiresAt.isAfter(LocalDateTime.now()))
+                && (remainingUses == null || remainingUses > 0);
     }
 
     /** Re-activates (or extends) this entitlement after a successful payment. */
-    public void activate(String plan, LocalDateTime expiresAt) {
+    public void activate(String plan, LocalDateTime expiresAt, Integer remainingUses) {
         this.plan = plan;
         this.status = EntitlementStatus.ACTIVE;
         this.activatedAt = LocalDateTime.now();
         this.expiresAt = expiresAt;
+        this.remainingUses = remainingUses;
+    }
+
+    /** 유한 이용권일 때 남은 횟수를 1 차감한다. 무제한이면 아무 것도 하지 않는다. */
+    public void consumeOneUse() {
+        if (remainingUses != null && remainingUses > 0) {
+            this.remainingUses -= 1;
+        }
     }
 
     public enum EntitlementStatus {

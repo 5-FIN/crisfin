@@ -51,6 +51,7 @@ public class AnalysisController {
 
         Long userId = requirePaidUser(userDetails);
         AnalysisResultResponse response = analysisService.recommend(request, userId);
+        paymentService.consumeUse(userId); // 성공한 분석만 이용권 1회 소모
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
@@ -67,6 +68,7 @@ public class AnalysisController {
         Long userId = requirePaidUser(userDetails);
         ReinferRequest body = (request != null) ? request : new ReinferRequest();
         AnalysisResultResponse response = analysisService.reinfer(id, body, userId);
+        paymentService.consumeUse(userId); // 성공한 재분석만 이용권 1회 소모
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
