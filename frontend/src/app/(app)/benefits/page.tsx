@@ -19,6 +19,7 @@ export default function BenefitsPage() {
   const [expanded, setExpanded]   = useState<string | null>(null)
   const [loadingWelfare, setLoadingWelfare] = useState(false)
   const [region, setRegion]       = useState<string | null>(null)
+  const [regionSgg, setRegionSgg] = useState<string | null>(null)
 
   useEffect(() => {
     const data = analysisStore.load()
@@ -29,14 +30,17 @@ export default function BenefitsPage() {
     // 사용자 지역 조회 후 복지 API 호출 (지역 우선)
     setLoadingWelfare(true)
     usersApi.me()
-      .then(me => me.regionCtpv ?? null)
-      .catch(() => null) // 미인증(401 등)은 조용히 무시
-      .then(userRegion => {
-        setRegion(userRegion)
-        // 내 지역 + 내 위기유형을 함께 필터링(지역 미설정 시 위기유형만).
+      .then(me => ({ ctpv: me.regionCtpv ?? null, sgg: me.regionSgg ?? null }))
+      .catch(() => ({ ctpv: null, sgg: null })) // 미인증(401 등)은 조용히 무시
+      .then(({ ctpv, sgg }) => {
+        setRegion(ctpv)
+        setRegionSgg(sgg)
+        // 내 지역(시도+시군구) + 내 위기유형을 함께 필터링(지역 미설정 시 위기유형만).
+        // 시군구는 백엔드에서 "해당 시군구 + 시도 공통(sgg 없음)"을 포함해 조회한다.
         // 복지 항목은 WelfareCrisisTagger가 위기유형 태그를 부여해 둔다.
         return welfareApi.list({
-          ctpvNm: userRegion ?? undefined,
+          ctpvNm: ctpv ?? undefined,
+          sggNm: sgg ?? undefined,
           crisisType: data.crisisType as CrisisType,
           size: 20,
         })
@@ -230,7 +234,9 @@ export default function BenefitsPage() {
       {filteredWelfare.length > 0 && (
         <div>
           <h2 className="text-sm font-semibold text-[#475569] uppercase tracking-wide mb-3">
-            {region ? `내 지역(${region}) 맞춤 복지 제도` : '내 위기 맞춤 복지 제도'} ({filteredWelfare.length})
+            {region
+              ? `내 지역(${[region, regionSgg].filter(Boolean).join(' ')}) 맞춤 복지 제도`
+              : '내 위기 맞춤 복지 제도'} ({filteredWelfare.length})
           </h2>
           <div className="space-y-3">
             {filteredWelfare.map(item => {

@@ -5,11 +5,11 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { authApi } from '@/lib/api'
 import { tokenStore } from '@/lib/utils'
-import { SIDO_LIST } from '@/lib/regions'
+import { SIDO_LIST, sigunguOf } from '@/lib/regions'
 
 export default function SignupPage() {
   const router = useRouter()
-  const [form, setForm] = useState({ email: '', password: '', nickname: '', regionCtpv: '' })
+  const [form, setForm] = useState({ email: '', password: '', nickname: '', regionCtpv: '', regionSgg: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -22,7 +22,11 @@ export default function SignupPage() {
     }
     setLoading(true)
     try {
-      const res = await authApi.signup({ ...form, regionCtpv: form.regionCtpv || undefined })
+      const res = await authApi.signup({
+        ...form,
+        regionCtpv: form.regionCtpv || undefined,
+        regionSgg: form.regionSgg || undefined,
+      })
       tokenStore.set(res.accessToken, res.refreshToken)
       router.push('/diagnosis')
     } catch (err) {
@@ -65,16 +69,31 @@ export default function SignupPage() {
             ))}
             <div>
               <label className="block text-sm font-medium text-[#1E293B] mb-1.5">지역 (선택)</label>
-              <select
-                value={form.regionCtpv}
-                onChange={e => setForm(f => ({ ...f, regionCtpv: e.target.value }))}
-                className="w-full px-3.5 py-2.5 rounded-lg border border-[#E2E8F0] text-sm text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent transition"
-              >
-                <option value="">지역(시/도) 선택</option>
-                {SIDO_LIST.map(sido => (
-                  <option key={sido} value={sido}>{sido}</option>
-                ))}
-              </select>
+              <div className="grid grid-cols-2 gap-2">
+                {/* 시/도 — 변경 시 하위 시/군/구 선택을 초기화 */}
+                <select
+                  value={form.regionCtpv}
+                  onChange={e => setForm(f => ({ ...f, regionCtpv: e.target.value, regionSgg: '' }))}
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-[#E2E8F0] text-sm text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent transition"
+                >
+                  <option value="">시/도 선택</option>
+                  {SIDO_LIST.map(sido => (
+                    <option key={sido} value={sido}>{sido}</option>
+                  ))}
+                </select>
+                {/* 시/군/구 — 시/도 선택 후 활성화. 하위가 없는 지역(세종)은 비활성 */}
+                <select
+                  value={form.regionSgg}
+                  onChange={e => setForm(f => ({ ...f, regionSgg: e.target.value }))}
+                  disabled={!form.regionCtpv || sigunguOf(form.regionCtpv).length === 0}
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-[#E2E8F0] text-sm text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent transition disabled:bg-[#F1F5F9] disabled:text-[#94A3B8] disabled:cursor-not-allowed"
+                >
+                  <option value="">시/군/구 선택</option>
+                  {sigunguOf(form.regionCtpv).map(sgg => (
+                    <option key={sgg} value={sgg}>{sgg}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             {error && (
               <div className="px-3.5 py-2.5 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600">
