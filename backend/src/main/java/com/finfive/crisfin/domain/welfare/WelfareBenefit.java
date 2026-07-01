@@ -57,6 +57,12 @@ public class WelfareBenefit {
 
     private String contact;
 
+    @Column(name = "ctpv_nm")
+    private String ctpvNm;
+
+    @Column(name = "sgg_nm")
+    private String sggNm;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private List<String> crisisTags;
@@ -83,6 +89,8 @@ public class WelfareBenefit {
                        String ministryName,
                        String contact,
                        List<String> crisisTags,
+                       String ctpvNm,
+                       String sggNm,
                        LocalDateTime lastSyncedAt) {
         this.serviceName = serviceName;
         this.summary = summary;
@@ -93,6 +101,8 @@ public class WelfareBenefit {
         this.ministryName = ministryName;
         this.contact = contact;
         this.crisisTags = crisisTags;
+        this.ctpvNm = ctpvNm;
+        this.sggNm = sggNm;
         this.lastSyncedAt = lastSyncedAt;
         this.isActive = true;
     }

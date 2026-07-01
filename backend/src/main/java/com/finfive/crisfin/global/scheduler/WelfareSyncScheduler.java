@@ -102,6 +102,8 @@ public class WelfareSyncScheduler {
                         item.getBizChrDeptNm(),
                         /* contact */ null,
                         /* crisisTags — enriched in a later step */ Collections.emptyList(),
+                        item.getCtpvNm(),
+                        item.getSggNm(),
                         syncedAt
                 );
                 toSave.add(entity);
@@ -117,6 +119,8 @@ public class WelfareSyncScheduler {
                         .ministryName(item.getBizChrDeptNm())
                         .contact(null)
                         .crisisTags(Collections.emptyList())
+                        .ctpvNm(item.getCtpvNm())
+                        .sggNm(item.getSggNm())
                         .isActive(true)
                         .lastSyncedAt(syncedAt)
                         .build());

@@ -18,24 +18,25 @@ public class WelfareService {
     private final WelfareBenefitRepository welfareBenefitRepository;
 
     /**
-     * Returns a paginated list of active welfare benefits, optionally filtered
-     * by a crisis type tag.
+     * Returns a paginated list of active welfare benefits, optionally filtered by
+     * region (시도/시군구) and/or crisis type tag. Any blank filter is treated as
+     * absent (no constraint on that column).
      *
+     * @param ctpvNm     optional 시도 filter (e.g. "서울특별시"); blank means no filter
+     * @param sggNm      optional 시군구 filter (e.g. "종로구"); blank means no filter
      * @param crisisType optional crisis type string (e.g. "UNEMPLOYMENT"); blank means no filter
      * @param pageable   pagination and sorting parameters
      * @return page of {@link WelfareBenefitResponse}
      */
-    public Page<WelfareBenefitResponse> getWelfareBenefits(String crisisType, Pageable pageable) {
-        Page<WelfareBenefit> page;
+    public Page<WelfareBenefitResponse> getWelfareBenefits(
+            String ctpvNm, String sggNm, String crisisType, Pageable pageable) {
 
-        if (StringUtils.hasText(crisisType)) {
-            page = welfareBenefitRepository.findByIsActiveTrueAndCrisisTagsContaining(
-                    crisisType.trim().toUpperCase(), pageable);
-        } else {
-            page = welfareBenefitRepository.findByIsActiveTrue(pageable);
-        }
+        String ctpv = StringUtils.hasText(ctpvNm) ? ctpvNm.trim() : null;
+        String sgg = StringUtils.hasText(sggNm) ? sggNm.trim() : null;
+        String tag = StringUtils.hasText(crisisType) ? crisisType.trim().toUpperCase() : null;
 
-        return page.map(WelfareBenefitResponse::from);
+        return welfareBenefitRepository.search(ctpv, sgg, tag, pageable)
+                .map(WelfareBenefitResponse::from);
     }
 
     /**
