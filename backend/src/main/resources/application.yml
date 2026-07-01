@@ -62,6 +62,9 @@ welfare:
   api:
     key: ${PUBLIC_DATA_API_KEY:}
     base-url: http://apis.data.go.kr/B554287/LocalGovernmentWelfareInformations
+    # 동기화 상한 및 페이지 크기 (목록 페이지네이션).
+    max-items: 1000
+    page-size: 100
 # Paid analysis (mock payment) — price in KRW, immediate entitlement on confirm.
 payment:
   price: ${PAYMENT_PRICE:9900}

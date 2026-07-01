@@ -7,8 +7,10 @@ import com.finfive.crisfin.domain.welfare.WelfareCrisisTagger;
 import com.finfive.crisfin.infra.openapi.WelfareApiClient;
 import com.finfive.crisfin.infra.openapi.dto.WelfareApiResponse;
 import com.finfive.crisfin.infra.openapi.dto.WelfareApiResponse.WelfareItem;
+import com.finfive.crisfin.infra.openapi.dto.WelfareDetailResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -34,6 +36,14 @@ public class WelfareSyncScheduler {
     private final WelfareBenefitRepository welfareBenefitRepository;
     private final PolicyIndexingService policyIndexingService;
     private final WelfareCrisisTagger crisisTagger;
+
+    /** 동기화할 최대 항목 수 (페이지네이션 상한). */
+    @Value("${welfare.api.max-items:1000}")
+    private int maxItems;
+
+    /** 페이지당 요청 항목 수. */
+    @Value("${welfare.api.page-size:100}")
+    private int pageSize;
 
     /**
      * Scheduled entry point. Delegates to {@link #runSync()} so the same logic can
@@ -73,12 +83,37 @@ public class WelfareSyncScheduler {
 
         log.info("[WelfareSyncScheduler] Starting welfare benefits sync ...");
 
-        WelfareApiResponse response = welfareApiClient.getWelfareBenefits(1, 100);
-        List<WelfareItem> items = response.getData();
+        // Paginate: fetch pageNo = 1, 2, ... (numOfRows = pageSize) accumulating items until
+        //   - accumulated >= maxItems, OR
+        //   - accumulated >= totalCount (from the first response), OR
+        //   - a page returns empty.
+        List<WelfareItem> items = new ArrayList<>();
+        int totalCount = Integer.MAX_VALUE; // ceiling — overwritten by the first response
+        for (int page = 1; items.size() < maxItems; page++) {
+            WelfareApiResponse response = welfareApiClient.getWelfareBenefits(page, pageSize);
+            if (page == 1) {
+                totalCount = response.getTotalCount();
+            }
 
-        if (items == null || items.isEmpty()) {
+            List<WelfareItem> pageItems = response.getData();
+            if (pageItems == null || pageItems.isEmpty()) {
+                break;
+            }
+            items.addAll(pageItems);
+
+            if (totalCount > 0 && items.size() >= totalCount) {
+                break;
+            }
+        }
+
+        if (items.isEmpty()) {
             log.warn("[WelfareSyncScheduler] External API returned 0 items — nothing to sync.");
             return 0;
+        }
+
+        // Cap at maxItems (a page may have overshot the limit).
+        if (items.size() > maxItems) {
+            items = new ArrayList<>(items.subList(0, maxItems));
         }
 
         LocalDateTime syncedAt = LocalDateTime.now();
@@ -135,6 +170,45 @@ public class WelfareSyncScheduler {
         welfareBenefitRepository.saveAll(toSave);
 
         log.info("[WelfareSyncScheduler] Welfare sync complete — {} record(s) processed.", toSave.size());
+
+        // Detail-enrichment pass: fetch each service's FULL detail text and store it as the
+        // rich RAG ingest source. Each detail call is isolated so one failure only skips that
+        // one item and never aborts the sync.
+        int total = toSave.size();
+        int enriched = 0;
+        List<WelfareBenefit> detailed = new ArrayList<>();
+        for (int i = 0; i < total; i++) {
+            WelfareBenefit entity = toSave.get(i);
+            String servId = entity.getExternalServiceId();
+            if (!StringUtils.hasText(servId)) {
+                continue;
+            }
+            try {
+                WelfareDetailResponse detail = welfareApiClient.getWelfareDetail(servId);
+                if (detail != null) {
+                    String detailContent = detail.toDetailContent();
+                    if (StringUtils.hasText(detailContent)) {
+                        entity.applyDetailContent(detailContent);
+                        detailed.add(entity);
+                        enriched++;
+                    }
+                }
+            } catch (Exception detailEx) {
+                // 개별 상세 실패는 건너뛴다 (클라이언트가 이미 null을 반환하지만 방어적으로 감싼다).
+                log.debug("[WelfareSyncScheduler] detail fetch skipped (servId={}): {}",
+                        servId, detailEx.getMessage());
+            }
+
+            // Progress log every 100 items.
+            if ((i + 1) % 100 == 0) {
+                log.info("[WelfareSyncScheduler] detail {}/{}", i + 1, total);
+            }
+        }
+
+        if (!detailed.isEmpty()) {
+            welfareBenefitRepository.saveAll(detailed);
+        }
+        log.info("[WelfareSyncScheduler] Detail enrichment complete — {}/{} enriched.", enriched, total);
 
         // Rebuild the RAG policy index from the freshly-synced data. Isolated in its own
         // try/catch so an embedding/index failure can never break the welfare sync.

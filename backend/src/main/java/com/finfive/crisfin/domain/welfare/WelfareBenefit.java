@@ -51,6 +51,10 @@ public class WelfareBenefit {
     @Column(columnDefinition = "TEXT")
     private String applyMethod;
 
+    /** 상세조회 API에서 가져온 전체 서비스 본문 (RAG 색인 소스). */
+    @Column(name = "detail_content", columnDefinition = "TEXT")
+    private String detailContent;
+
     private String applyUrl;
 
     private String ministryName;
@@ -105,5 +109,10 @@ public class WelfareBenefit {
         this.sggNm = sggNm;
         this.lastSyncedAt = lastSyncedAt;
         this.isActive = true;
+    }
+
+    /** 상세조회 API 본문을 반영한다. 상세 조회는 upsert 이후 별도 패스에서 수행되므로 update와 분리한다. */
+    public void applyDetailContent(String detailContent) {
+        this.detailContent = detailContent;
     }
 }

@@ -27,6 +27,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PolicyIndexingService {
 
+    /** Target chunk size (chars) when splitting the rich welfare detail text. */
+    static final int CHUNK_TARGET_SIZE = 500;
+
     private final EmbeddingProvider embeddingProvider;
     private final PolicyEmbeddingRepository policyEmbeddingRepository;
     private final WelfareBenefitRepository welfareBenefitRepository;
@@ -47,6 +50,20 @@ public class PolicyIndexingService {
         List<Chunk> chunks = new ArrayList<>();
 
         for (WelfareBenefit w : welfareBenefitRepository.findAll()) {
+            String tags = wrapTags(w.getCrisisTags());
+
+            // Prefer the rich detail text (상세조회 본문): split into ~500-char chunks so each
+            // labeled section is embedded separately for finer retrieval. Fall back to the
+            // short summary composite when no detail content is available.
+            String detail = w.getDetailContent();
+            if (detail != null && !detail.isBlank()) {
+                List<String> pieces = chunkText(detail, CHUNK_TARGET_SIZE);
+                for (int i = 0; i < pieces.size(); i++) {
+                    chunks.add(new Chunk("WELFARE", w.getId() + "#" + i, tags, pieces.get(i)));
+                }
+                continue;
+            }
+
             String content = joinNonBlank(
                     w.getServiceName(),
                     w.getSummary(),
@@ -56,8 +73,7 @@ public class PolicyIndexingService {
             if (content.isBlank()) {
                 continue;
             }
-            chunks.add(new Chunk("WELFARE", String.valueOf(w.getId()),
-                    wrapTags(w.getCrisisTags()), content));
+            chunks.add(new Chunk("WELFARE", String.valueOf(w.getId()), tags, content));
         }
 
         for (CrisisGuide g : crisisGuideRepository.findAll()) {
@@ -112,6 +128,38 @@ public class PolicyIndexingService {
             }
         }
         return sb.toString();
+    }
+
+    /**
+     * Splits {@code text} into chunks of roughly {@code targetSize} characters, breaking on
+     * line boundaries where possible. Lines are accumulated until adding the next one would
+     * exceed {@code targetSize}, at which point the buffer is flushed. A single line longer
+     * than {@code targetSize} becomes its own chunk. Deterministic and dependency-free.
+     *
+     * @return one chunk for short text, multiple for long text; never empty for non-blank input
+     */
+    static List<String> chunkText(String text, int targetSize) {
+        List<String> chunks = new ArrayList<>();
+        if (text == null || text.isBlank()) {
+            return chunks;
+        }
+
+        StringBuilder buf = new StringBuilder();
+        for (String line : text.split("\n", -1)) {
+            // Flush before overflowing (only when the buffer already holds content).
+            if (buf.length() > 0 && buf.length() + line.length() + 1 > targetSize) {
+                chunks.add(buf.toString().trim());
+                buf.setLength(0);
+            }
+            if (buf.length() > 0) {
+                buf.append('\n');
+            }
+            buf.append(line);
+        }
+        if (buf.length() > 0 && !buf.toString().isBlank()) {
+            chunks.add(buf.toString().trim());
+        }
+        return chunks;
     }
 
     private record Chunk(String sourceType, String sourceRef, String crisisTags, String content) {
