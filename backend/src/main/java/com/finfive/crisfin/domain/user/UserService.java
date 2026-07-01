@@ -3,6 +3,8 @@ package com.finfive.crisfin.domain.user;
 import com.finfive.crisfin.domain.user.dto.AuthResponse;
 import com.finfive.crisfin.domain.user.dto.LoginRequest;
 import com.finfive.crisfin.domain.user.dto.SignupRequest;
+import com.finfive.crisfin.domain.user.dto.UpdateProfileRequest;
+import com.finfive.crisfin.domain.user.dto.UserResponse;
 import com.finfive.crisfin.global.config.JwtProvider;
 import com.finfive.crisfin.global.exception.CrisfinException;
 import com.finfive.crisfin.global.exception.ErrorCode;
@@ -101,6 +103,28 @@ public class UserService implements UserDetailsService {
     public void logout(String token) {
         refreshTokenRepository.findByToken(token)
                 .ifPresent(refreshTokenRepository::delete);
+    }
+
+    // ------------------------------------------------------------------ //
+    //  Profile update
+    // ------------------------------------------------------------------ //
+
+    /**
+     * Updates the authenticated user's editable profile (nickname + region). Blank region
+     * values clear the field (region 미설정). Returns the refreshed profile view.
+     */
+    @Transactional
+    public UserResponse updateProfile(Long userId, UpdateProfileRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CrisfinException(ErrorCode.UNAUTHORIZED, "사용자를 찾을 수 없습니다."));
+
+        user.updateNickname(request.getNickname().trim());
+        user.updateRegion(blankToNull(request.getRegionCtpv()), blankToNull(request.getRegionSgg()));
+        return UserResponse.from(user);
+    }
+
+    private static String blankToNull(String s) {
+        return (s == null || s.isBlank()) ? null : s.trim();
     }
 
     // ------------------------------------------------------------------ //

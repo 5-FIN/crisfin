@@ -1,5 +1,6 @@
 package com.finfive.crisfin.domain.user;
 
+import com.finfive.crisfin.domain.user.dto.UpdateProfileRequest;
 import com.finfive.crisfin.domain.user.dto.UserResponse;
 import com.finfive.crisfin.global.exception.CrisfinException;
 import com.finfive.crisfin.global.exception.ErrorCode;
@@ -9,14 +10,17 @@ import org.springframework.http.ResponseEntity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for {@link UserController} — /me 프로필 조회를 컨트롤러 직접 호출로 검증.
+ * Unit tests for {@link UserController} — /me 프로필 조회·수정을 컨트롤러 직접 호출로 검증.
  * (보안은 Spring 런타임에서 강제됨; 여기선 principal 처리 로직만 검증)
  */
 class UserControllerTest {
 
-    private final UserController controller = new UserController();
+    private final UserService userService = mock(UserService.class);
+    private final UserController controller = new UserController(userService);
 
     private User user() {
         return User.builder()
@@ -48,6 +52,29 @@ class UserControllerTest {
     @Test
     void me_anonymous_throwsUnauthorized() {
         assertThatThrownBy(() -> controller.me(null))
+                .isInstanceOf(CrisfinException.class)
+                .extracting(e -> ((CrisfinException) e).getErrorCode())
+                .isEqualTo(ErrorCode.UNAUTHORIZED);
+    }
+
+    @Test
+    void updateMe_authenticated_delegatesToServiceWithUserId() {
+        UpdateProfileRequest req = mock(UpdateProfileRequest.class);
+        UserResponse updated = UserResponse.builder()
+                .email("u@test.com").nickname("바뀐닉").role("USER")
+                .regionCtpv("부산광역시").regionSgg("해운대구").build();
+        when(userService.updateProfile(1L, req)).thenReturn(updated);
+
+        ResponseEntity<ApiResponse<UserResponse>> res = controller.updateMe(req, user());
+
+        assertThat(res.getStatusCode().value()).isEqualTo(200);
+        assertThat(res.getBody().getData().getNickname()).isEqualTo("바뀐닉");
+        assertThat(res.getBody().getData().getRegionCtpv()).isEqualTo("부산광역시");
+    }
+
+    @Test
+    void updateMe_anonymous_throwsUnauthorized() {
+        assertThatThrownBy(() -> controller.updateMe(mock(UpdateProfileRequest.class), null))
                 .isInstanceOf(CrisfinException.class)
                 .extracting(e -> ((CrisfinException) e).getErrorCode())
                 .isEqualTo(ErrorCode.UNAUTHORIZED);
