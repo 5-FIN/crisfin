@@ -8,7 +8,8 @@ COPY gradle gradle
 COPY build.gradle .
 COPY settings.gradle .
 
-RUN chmod +x gradlew && ./gradlew dependencies --no-daemon
+# gradlew가 CRLF로 체크아웃돼도 컨테이너 안에서 CR 제거 → shebang 깨짐 방지
+RUN sed -i 's/\r$//' gradlew && chmod +x gradlew && ./gradlew dependencies --no-daemon
 
 COPY src src
 
