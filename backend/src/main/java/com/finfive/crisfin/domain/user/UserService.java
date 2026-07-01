@@ -28,6 +28,7 @@ public class UserService implements UserDetailsService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtProvider jwtProvider;
     private final PasswordEncoder passwordEncoder;
+    private final LoginAttemptService loginAttemptService;
 
     // ------------------------------------------------------------------ //
     //  Signup
@@ -59,13 +60,19 @@ public class UserService implements UserDetailsService {
 
     @Transactional
     public AuthResponse login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new CrisfinException(ErrorCode.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."));
+        // 브루트포스 방어: 연속 실패가 임계치를 넘으면 잠금 기간 동안 차단
+        if (loginAttemptService.isLocked(request.getEmail())) {
+            throw new CrisfinException(ErrorCode.LOGIN_LOCKED,
+                    "로그인 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.");
+        }
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+        User user = userRepository.findByEmail(request.getEmail()).orElse(null);
+        if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            loginAttemptService.recordFailure(request.getEmail());
             throw new CrisfinException(ErrorCode.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다.");
         }
 
+        loginAttemptService.reset(request.getEmail());
         user.recordLogin();
 
         // Rotate refresh token

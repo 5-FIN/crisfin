@@ -26,6 +26,9 @@ public enum ErrorCode {
     // 403 – Authorization
     FORBIDDEN(403, "FORBIDDEN", "해당 리소스에 대한 접근 권한이 없습니다."),
 
+    // 429 – Too many requests
+    LOGIN_LOCKED(429, "LOGIN_LOCKED", "로그인 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요."),
+
     // 404 – Not found
     ANALYSIS_NOT_FOUND(404, "ANALYSIS_NOT_FOUND", "요청한 분석 결과를 찾을 수 없습니다."),
     PAYMENT_ORDER_NOT_FOUND(404, "PAYMENT_ORDER_NOT_FOUND", "결제 주문을 찾을 수 없습니다."),
