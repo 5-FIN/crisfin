@@ -60,6 +60,7 @@ dependencies {
     annotationProcessor "org.mapstruct:mapstruct-processor:1.5.5.Final"
 
     implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310"
+    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-xml"
 
     runtimeOnly "org.postgresql:postgresql"
     developmentOnly "org.springframework.boot:spring-boot-devtools"
