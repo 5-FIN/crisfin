@@ -3,6 +3,7 @@ package com.finfive.crisfin.global.scheduler;
 import com.finfive.crisfin.domain.recommendation.rag.PolicyIndexingService;
 import com.finfive.crisfin.domain.welfare.WelfareBenefit;
 import com.finfive.crisfin.domain.welfare.WelfareBenefitRepository;
+import com.finfive.crisfin.domain.welfare.WelfareCrisisTagger;
 import com.finfive.crisfin.infra.openapi.WelfareApiClient;
 import com.finfive.crisfin.infra.openapi.dto.WelfareApiResponse;
 import com.finfive.crisfin.infra.openapi.dto.WelfareApiResponse.WelfareItem;
@@ -14,7 +15,6 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -33,6 +33,7 @@ public class WelfareSyncScheduler {
     private final WelfareApiClient welfareApiClient;
     private final WelfareBenefitRepository welfareBenefitRepository;
     private final PolicyIndexingService policyIndexingService;
+    private final WelfareCrisisTagger crisisTagger;
 
     /**
      * Scheduled entry point. Delegates to {@link #runSync()} so the same logic can
@@ -85,6 +86,10 @@ public class WelfareSyncScheduler {
 
         for (WelfareItem item : items) {
             String targetDescription = buildTargetDescription(item);
+            // 위기유형 태그를 서비스명·요약·관심주제·생애주기 텍스트에서 키워드로 도출
+            List<String> crisisTags = crisisTagger.tag(
+                    item.getServNm(), item.getServDgst(),
+                    item.getIntrsThemaNmArray(), item.getLifeNmArray());
 
             WelfareBenefit entity = welfareBenefitRepository
                     .findByExternalServiceId(item.getServId())
@@ -101,7 +106,7 @@ public class WelfareSyncScheduler {
                         item.getServDtlLink(),
                         item.getBizChrDeptNm(),
                         /* contact */ null,
-                        /* crisisTags — enriched in a later step */ Collections.emptyList(),
+                        crisisTags,
                         item.getCtpvNm(),
                         item.getSggNm(),
                         syncedAt
@@ -118,7 +123,7 @@ public class WelfareSyncScheduler {
                         .applyUrl(item.getServDtlLink())
                         .ministryName(item.getBizChrDeptNm())
                         .contact(null)
-                        .crisisTags(Collections.emptyList())
+                        .crisisTags(crisisTags)
                         .ctpvNm(item.getCtpvNm())
                         .sggNm(item.getSggNm())
                         .isActive(true)
