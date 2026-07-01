@@ -3,13 +3,16 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight, TrendingUp, PauseCircle, DollarSign, CheckSquare } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import { analysisStore, fmt, fmtAmount, CRISIS_LABELS, CRISIS_EMOJI, priorityBadge } from '@/lib/utils'
 import NoAnalysisEmptyState from '@/components/common/NoAnalysisEmptyState'
+import ReinferModal from '@/components/dashboard/ReinferModal'
 import type { AnalysisResultResponse } from '@/lib/types'
 
 export default function DashboardPage() {
   const [analysis, setAnalysis] = useState<AnalysisResultResponse | null>(null)
   const [loaded, setLoaded] = useState(false)
+  const [showReinfer, setShowReinfer] = useState(false)
 
   useEffect(() => {
     setAnalysis(analysisStore.load())
@@ -72,10 +75,16 @@ export default function DashboardPage() {
           </div>
           <h1 className="text-2xl font-bold text-[#1E293B]">내 금융 위기 대응 현황</h1>
         </div>
-        <Link href="/diagnosis"
-          className="text-xs text-[#64748B] hover:text-[#2563EB] flex items-center gap-1 border border-[#E2E8F0] rounded-lg px-3 py-1.5 transition-colors">
-          재분석 <ArrowRight size={12} />
-        </Link>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowReinfer(true)}
+            className="text-xs text-white bg-[#8B5CF6] hover:bg-[#7C3AED] flex items-center gap-1 rounded-lg px-3 py-1.5 transition-colors font-medium">
+            <Sparkles size={12} /> 개인화 재분석
+          </button>
+          <Link href="/diagnosis"
+            className="text-xs text-[#64748B] hover:text-[#2563EB] flex items-center gap-1 border border-[#E2E8F0] rounded-lg px-3 py-1.5 transition-colors">
+            새로 분석 <ArrowRight size={12} />
+          </Link>
+        </div>
       </div>
 
       {/* Runway 바 */}
@@ -181,6 +190,14 @@ export default function DashboardPage() {
 
       {/* 면책 조항 */}
       <p className="mt-6 text-xs text-[#94A3B8] text-center">{result.disclaimer}</p>
+
+      {showReinfer && (
+        <ReinferModal
+          analysis={analysis}
+          onClose={() => setShowReinfer(false)}
+          onUpdated={setAnalysis}
+        />
+      )}
     </div>
   )
 }
