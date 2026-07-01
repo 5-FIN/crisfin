@@ -5,6 +5,7 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.finfive.crisfin.global.exception.CrisfinException;
 import com.finfive.crisfin.global.exception.ErrorCode;
 import com.finfive.crisfin.infra.openapi.dto.WelfareApiResponse;
+import com.finfive.crisfin.infra.openapi.dto.WelfareDetailResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -87,6 +88,47 @@ public class WelfareApiClient {
         } catch (Exception e) {
             log.error("[WelfareApiClient] 복지 서비스 API 호출 실패: {}", e.getMessage(), e);
             throw new CrisfinException(ErrorCode.WELFARE_API_UNAVAILABLE, e);
+        }
+    }
+
+    /**
+     * Fetches the FULL detail of a single welfare service (지자체복지 상세조회) from the
+     * {@code /LcgvWelfaredetailed} endpoint. Used to build the rich RAG ingest text.
+     *
+     * <p>Failure-tolerant by design: a single detail lookup must never abort the whole
+     * sync, so any error is logged as a warning and {@code null} is returned instead of
+     * throwing. Reuses the exact {@code serviceKey} encoding + {@link URI#create(String)}
+     * approach as {@link #getWelfareBenefits(int, int)} so the '+' in the decoded key is
+     * encoded exactly once.
+     *
+     * @param servId the service ID (from the list response's {@code servId})
+     * @return parsed {@link WelfareDetailResponse}, or {@code null} when not configured or on any failure
+     */
+    public WelfareDetailResponse getWelfareDetail(String servId) {
+        if (!isConfigured()) {
+            return null;
+        }
+
+        try {
+            // 목록 조회와 동일한 인코딩 방식(직접 퍼센트 인코딩 후 완성 URI 전달).
+            String encodedKey = URLEncoder.encode(apiKey, StandardCharsets.UTF_8);
+            URI uri = URI.create(baseUrl + "/LcgvWelfaredetailed"
+                    + "?serviceKey=" + encodedKey
+                    + "&servId=" + servId);
+
+            String responseBody = webClientBuilder.build()
+                    .get()
+                    .uri(uri)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            return xmlMapper.readValue(responseBody, WelfareDetailResponse.class);
+
+        } catch (Exception e) {
+            // 개별 상세 실패는 전체 동기화를 중단시키지 않는다 — 경고만 남기고 null 반환.
+            log.warn("[WelfareApiClient] 복지 상세 조회 실패 (servId={}): {}", servId, e.getMessage());
+            return null;
         }
     }
 }
