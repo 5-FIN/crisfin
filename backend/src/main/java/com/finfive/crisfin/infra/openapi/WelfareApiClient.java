@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.net.URI;
 import java.net.URLEncoder;
@@ -109,26 +110,42 @@ public class WelfareApiClient {
             return null;
         }
 
-        try {
-            // 목록 조회와 동일한 인코딩 방식(직접 퍼센트 인코딩 후 완성 URI 전달).
-            String encodedKey = URLEncoder.encode(apiKey, StandardCharsets.UTF_8);
-            URI uri = URI.create(baseUrl + "/LcgvWelfaredetailed"
-                    + "?serviceKey=" + encodedKey
-                    + "&servId=" + servId);
+        // 목록 조회와 동일한 인코딩 방식(직접 퍼센트 인코딩 후 완성 URI 전달).
+        String encodedKey = URLEncoder.encode(apiKey, StandardCharsets.UTF_8);
+        URI uri = URI.create(baseUrl + "/LcgvWelfaredetailed"
+                + "?serviceKey=" + encodedKey
+                + "&servId=" + servId);
 
-            String responseBody = webClientBuilder.build()
-                    .get()
-                    .uri(uri)
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
-
-            return xmlMapper.readValue(responseBody, WelfareDetailResponse.class);
-
-        } catch (Exception e) {
-            // 개별 상세 실패는 전체 동기화를 중단시키지 않는다 — 경고만 남기고 null 반환.
-            log.warn("[WelfareApiClient] 복지 상세 조회 실패 (servId={}): {}", servId, e.getMessage());
-            return null;
+        // 429(Too Many Requests)는 일시적 스로틀일 수 있어 지수 백오프로 소폭 재시도한다.
+        // 그 외 오류나 재시도 소진 시에는 전체 동기화를 막지 않도록 null을 반환한다.
+        int maxAttempts = 3;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                String responseBody = webClientBuilder.build()
+                        .get()
+                        .uri(uri)
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .block();
+                return xmlMapper.readValue(responseBody, WelfareDetailResponse.class);
+            } catch (WebClientResponseException.TooManyRequests e) {
+                if (attempt < maxAttempts) {
+                    try {
+                        Thread.sleep(500L * attempt); // 0.5s, 1.0s 백오프
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        return null;
+                    }
+                    continue;
+                }
+                log.warn("[WelfareApiClient] 복지 상세 429 (재시도 소진, servId={})", servId);
+                return null;
+            } catch (Exception e) {
+                // 개별 상세 실패는 전체 동기화를 중단시키지 않는다 — 경고만 남기고 null 반환.
+                log.warn("[WelfareApiClient] 복지 상세 조회 실패 (servId={}): {}", servId, e.getMessage());
+                return null;
+            }
         }
+        return null;
     }
 }

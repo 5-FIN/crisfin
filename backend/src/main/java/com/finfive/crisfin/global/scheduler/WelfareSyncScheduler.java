@@ -17,7 +17,12 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Scheduled job that pulls welfare-benefit data from the LocalGovernment welfare
@@ -44,6 +49,10 @@ public class WelfareSyncScheduler {
     /** 페이지당 요청 항목 수. */
     @Value("${welfare.api.page-size:100}")
     private int pageSize;
+
+    /** 상세조회 병렬 처리 스레드 수 (외부 API TPS 한도를 넘지 않는 선). */
+    @Value("${welfare.api.detail-concurrency:4}")
+    private int detailConcurrency;
 
     /**
      * Scheduled entry point. Delegates to {@link #runSync()} so the same logic can
@@ -171,44 +180,62 @@ public class WelfareSyncScheduler {
 
         log.info("[WelfareSyncScheduler] Welfare sync complete — {} record(s) processed.", toSave.size());
 
-        // Detail-enrichment pass: fetch each service's FULL detail text and store it as the
-        // rich RAG ingest source. Each detail call is isolated so one failure only skips that
-        // one item and never aborts the sync.
-        int total = toSave.size();
-        int enriched = 0;
-        List<WelfareBenefit> detailed = new ArrayList<>();
-        for (int i = 0; i < total; i++) {
-            WelfareBenefit entity = toSave.get(i);
-            String servId = entity.getExternalServiceId();
-            if (!StringUtils.hasText(servId)) {
-                continue;
+        // Detail-enrichment pass (parallelized): fetch each service's FULL detail text
+        // concurrently on a bounded pool and store it as the rich RAG ingest source. Each
+        // task modifies a distinct entity object, so there is no shared-state race; failures
+        // are isolated per item and only skip that one. Bounded concurrency keeps us under
+        // the external API's TPS limit.
+        // 증분 조회: servId가 있고 아직 상세 본문이 없는 항목만 조회한다. 이미 채워진 항목은
+        // 건너뛰어 매 동기화마다 1000건을 재조회하지 않는다(속도·외부 API 쿼터 절약).
+        List<WelfareBenefit> withServId = new ArrayList<>();
+        for (WelfareBenefit e : toSave) {
+            if (StringUtils.hasText(e.getExternalServiceId())
+                    && !StringUtils.hasText(e.getDetailContent())) {
+                withServId.add(e);
             }
-            try {
-                WelfareDetailResponse detail = welfareApiClient.getWelfareDetail(servId);
-                if (detail != null) {
-                    String detailContent = detail.toDetailContent();
-                    if (StringUtils.hasText(detailContent)) {
-                        entity.applyDetailContent(detailContent);
-                        detailed.add(entity);
-                        enriched++;
-                    }
-                }
-            } catch (Exception detailEx) {
-                // 개별 상세 실패는 건너뛴다 (클라이언트가 이미 null을 반환하지만 방어적으로 감싼다).
-                log.debug("[WelfareSyncScheduler] detail fetch skipped (servId={}): {}",
-                        servId, detailEx.getMessage());
-            }
+        }
+        int total = withServId.size();
 
-            // Progress log every 100 items.
-            if ((i + 1) % 100 == 0) {
-                log.info("[WelfareSyncScheduler] detail {}/{}", i + 1, total);
+        int concurrency = Math.max(1, detailConcurrency);
+        ExecutorService pool = Executors.newFixedThreadPool(concurrency);
+        AtomicInteger done = new AtomicInteger();
+        List<WelfareBenefit> detailed = Collections.synchronizedList(new ArrayList<>());
+        try {
+            List<CompletableFuture<Void>> futures = new ArrayList<>(total);
+            for (WelfareBenefit entity : withServId) {
+                futures.add(CompletableFuture.runAsync(() -> {
+                    try {
+                        WelfareDetailResponse detail =
+                                welfareApiClient.getWelfareDetail(entity.getExternalServiceId());
+                        if (detail != null) {
+                            String detailContent = detail.toDetailContent();
+                            if (StringUtils.hasText(detailContent)) {
+                                entity.applyDetailContent(detailContent);
+                                detailed.add(entity);
+                            }
+                        }
+                    } catch (Exception detailEx) {
+                        // 개별 상세 실패는 건너뛴다 (클라이언트가 이미 null을 반환하지만 방어적으로 감싼다).
+                        log.debug("[WelfareSyncScheduler] detail fetch skipped (servId={}): {}",
+                                entity.getExternalServiceId(), detailEx.getMessage());
+                    } finally {
+                        int n = done.incrementAndGet();
+                        if (n % 100 == 0) {
+                            log.info("[WelfareSyncScheduler] detail {}/{}", n, total);
+                        }
+                    }
+                }, pool));
             }
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        } finally {
+            pool.shutdown();
         }
 
         if (!detailed.isEmpty()) {
             welfareBenefitRepository.saveAll(detailed);
         }
-        log.info("[WelfareSyncScheduler] Detail enrichment complete — {}/{} enriched.", enriched, total);
+        log.info("[WelfareSyncScheduler] Detail enrichment complete — {}/{} enriched.",
+                detailed.size(), total);
 
         // Rebuild the RAG policy index from the freshly-synced data. Isolated in its own
         // try/catch so an embedding/index failure can never break the welfare sync.

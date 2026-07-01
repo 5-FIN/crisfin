@@ -65,6 +65,11 @@ welfare:
     # 동기화 상한 및 페이지 크기 (목록 페이지네이션).
     max-items: 1000
     page-size: 100
+    # 상세조회 병렬 스레드 수 (외부 API TPS 한도 내).
+    detail-concurrency: 4
+  # 빈 DB 첫 부팅 시 자동 동기화 (배포/신규 볼륨에서 스스로 채움).
+  sync:
+    on-startup: true
 # Paid analysis (mock payment) — price in KRW, immediate entitlement on confirm.
 payment:
   price: ${PAYMENT_PRICE:9900}
