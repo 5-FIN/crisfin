@@ -144,7 +144,7 @@ public class BenefitRuleEngine {
         }
         long support = Math.round(limit * 0.85); // 본인부담 15% 제외
         out.add(ReceivableEstimate.eligible(name, support, support,
-                String.format("장기요양 %d등급 재가급여 월 한도 %,d원 기준, 본인부담 15% 제외 약 %,d원 지원(월).",
+                String.format("장기요양 %d등급 재가급여 월 한도 %,d원 기준, 본인부담 15%% 제외 약 %,d원 지원(월).",
                         p.getCareGrade(), limit, support),
                 "국민건강보험공단", url, "등급 판정 후 수시", docs));
     }
