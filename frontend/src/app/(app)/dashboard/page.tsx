@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, TrendingUp, PauseCircle, DollarSign, CheckSquare, Sparkles, Share2, Check } from 'lucide-react'
+import { ArrowRight, TrendingUp, PauseCircle, DollarSign, CheckSquare, Sparkles, Share2, Check, FileDown } from 'lucide-react'
 import { analysisStore, fmt, fmtAmount, CRISIS_LABELS, CRISIS_EMOJI, priorityBadge } from '@/lib/utils'
 import { analysisApi } from '@/lib/api'
+import { printAnalysisReport } from '@/lib/pdfReport'
 import NoAnalysisEmptyState from '@/components/common/NoAnalysisEmptyState'
 import ReinferModal from '@/components/dashboard/ReinferModal'
 import type { AnalysisResultResponse } from '@/lib/types'
@@ -101,6 +102,10 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold text-[#1E293B]">내 금융 위기 대응 현황</h1>
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={() => { if (!printAnalysisReport(analysis)) alert('팝업이 차단되어 리포트를 열 수 없습니다. 팝업 허용 후 다시 시도해주세요.') }}
+            className="text-xs text-[#64748B] hover:text-[#2563EB] flex items-center gap-1 border border-[#E2E8F0] rounded-lg px-3 py-1.5 transition-colors">
+            <FileDown size={12} /> PDF 저장
+          </button>
           <button onClick={() => handleShare(analysis.id)} disabled={shareState === 'sharing'}
             className="text-xs text-[#64748B] hover:text-[#2563EB] flex items-center gap-1 border border-[#E2E8F0] rounded-lg px-3 py-1.5 transition-colors disabled:opacity-50">
             {shareState === 'copied'
