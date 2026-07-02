@@ -7,6 +7,7 @@ import com.finfive.crisfin.domain.analysis.dto.AnalysisResultResponse;
 import com.finfive.crisfin.domain.analysis.dto.ApplicantProfile;
 import com.finfive.crisfin.domain.analysis.dto.ReinferRequest;
 import com.finfive.crisfin.domain.crisis.CrisisType;
+import com.finfive.crisfin.domain.payment.PaymentService;
 import com.finfive.crisfin.domain.recommendation.ResultAssembler;
 import com.finfive.crisfin.domain.recommendation.rag.PolicyRetrievalService;
 import com.finfive.crisfin.domain.recommendation.rag.RetrievedPolicy;
@@ -52,6 +53,7 @@ public class AnalysisService {
     private final PolicyRetrievalService policyRetrievalService;
     private final ResultAssembler resultAssembler;
     private final ObjectMapper objectMapper;
+    private final PaymentService paymentService;
 
     /** Number of policy chunks to retrieve for RAG grounding. */
     @Value("${embedding.rag.top-k:5}")
@@ -80,8 +82,11 @@ public class AnalysisService {
                 ? piiMaskingService.maskJsonData(rawMyData)
                 : Collections.emptyMap();
         CrisisType crisisType = parseCrisisType(req.getCrisisType());
-        return runPipeline(crisisType, req.getSituationDescription(), maskedData,
+        AnalysisResultResponse response = runPipeline(crisisType, req.getSituationDescription(), maskedData,
                 req.getApplicantProfile(), userId);
+        // 성공한 분석만 이용권 1회 소모. 동일 트랜잭션이라 소모가 실패하면 분석 저장도 함께 롤백된다.
+        paymentService.consumeUse(userId);
+        return response;
     }
 
     /**
@@ -121,7 +126,10 @@ public class AnalysisService {
                     : Collections.emptyMap();
         }
 
-        return runPipeline(parent.getCrisisType(), situation, maskedData, profile, userId);
+        AnalysisResultResponse response = runPipeline(parent.getCrisisType(), situation, maskedData, profile, userId);
+        // 성공한 재분석만 이용권 1회 소모(동일 트랜잭션).
+        paymentService.consumeUse(userId);
+        return response;
     }
 
     /**

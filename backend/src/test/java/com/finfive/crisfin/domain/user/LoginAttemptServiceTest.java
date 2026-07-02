@@ -50,4 +50,16 @@ class LoginAttemptServiceTest {
         service.recordFailure(null);
         assertThat(service.isLocked(null)).isFalse(); // 1회로는 잠기지 않음
     }
+
+    @Test
+    void evictExpired_keepsRecentLockedEntries() {
+        // 만료 정리가 방금 잠긴(최근) 항목을 지워버리면 안 된다.
+        String email = "recent@test.com";
+        for (int i = 0; i < 5; i++) service.recordFailure(email);
+        assertThat(service.isLocked(email)).isTrue();
+
+        service.evictExpired();
+
+        assertThat(service.isLocked(email)).isTrue();
+    }
 }
