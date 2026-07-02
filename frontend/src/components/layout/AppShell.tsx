@@ -8,6 +8,7 @@ import {
   History, Menu, LogOut, ChevronRight, BookOpen, Settings,
 } from 'lucide-react'
 import { cn, tokenStore, analysisStore, CRISIS_LABELS } from '@/lib/utils'
+import { authApi } from '@/lib/api'
 
 const NAV = [
   { href: '/guide',     icon: BookOpen,        label: '무료 길라잡이' },
@@ -102,7 +103,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     )
   }, [pathname])
 
-  function handleLogout() {
+  async function handleLogout() {
+    // 서버에서 refresh 토큰을 무효화한 뒤 로컬 상태를 정리한다. 서버 호출이
+    // 실패하더라도(만료 등) 로컬 로그아웃은 그대로 진행한다.
+    const refresh = tokenStore.getRefresh()
+    if (refresh) {
+      try { await authApi.logout(refresh) } catch { /* 무효화 실패는 무시 */ }
+    }
     tokenStore.clear()
     analysisStore.clear()
     router.push('/')
