@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { PauseCircle, AlertTriangle, Info } from 'lucide-react'
-import { analysisStore, fmt, riskBadge } from '@/lib/utils'
+import { PauseCircle, AlertTriangle, Info, CheckCircle2, Circle } from 'lucide-react'
+import { analysisStore, fmt, riskBadge, paymentStore } from '@/lib/utils'
 import NoAnalysisEmptyState from '@/components/common/NoAnalysisEmptyState'
 import type { AnalysisResultResponse, HoldableItem } from '@/lib/types'
 
@@ -13,10 +13,13 @@ export default function PaymentsPage() {
   const [loaded, setLoaded] = useState(false)
   const [tab, setTab] = useState<Tab>('urgent')
   const [expanded, setExpanded] = useState<number | null>(null)
+  const [done, setDone] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
-    setAnalysis(analysisStore.load())
+    const data = analysisStore.load()
+    setAnalysis(data)
     setLoaded(true)
+    if (data) setDone(paymentStore.load(data.id))
   }, [])
 
   if (!loaded) return null
@@ -24,6 +27,14 @@ export default function PaymentsPage() {
 
   const { holdable, todos } = analysis.result
   const urgentTodos = todos.filter(t => t.priority === 'HIGH')
+  const urgentDoneCount = urgentTodos.filter((_, i) => done[`u${i}`]).length
+  const urgentRemaining = urgentTodos.length - urgentDoneCount
+
+  function toggleUrgent(i: number) {
+    setDone({ ...paymentStore.toggle(analysis!.id, `u${i}`) })
+    // 사이드바 배지 실시간 갱신 트리거
+    window.dispatchEvent(new Event('cf-payment-updated'))
+  }
 
   /* holdable 위험도별 통계 */
   const highRisk = holdable.filter(h => h.riskLevel === 'LOW').length  // 신용영향 낮은 것 = 유예 권장
@@ -42,7 +53,7 @@ export default function PaymentsPage() {
       {/* 요약 카드 */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {[
-          { label: '긴급 처리', value: `${urgentTodos.length}건`, sub: '즉시 행동 필요', color: '#F59E0B', bg: '#FFFBEB', icon: AlertTriangle },
+          { label: '긴급 처리', value: `${urgentRemaining}건`, sub: urgentRemaining === 0 && urgentTodos.length > 0 ? '모두 처리 완료 ✓' : `총 ${urgentTodos.length}건 중 남음`, color: '#F59E0B', bg: '#FFFBEB', icon: AlertTriangle },
           { label: '유예 가능', value: `${highRisk}건`,          sub: '신용 영향 낮음',  color: '#2563EB', bg: '#EFF6FF', icon: PauseCircle },
           { label: '총 유예 항목', value: `${totalHoldable}건`, sub: 'AI 분석 결과',    color: '#8B5CF6', bg: '#F5F3FF', icon: Info },
         ].map(({ label, value, sub, color, bg, icon: Icon }) => (
@@ -79,18 +90,25 @@ export default function PaymentsPage() {
           {urgentTodos.length === 0 ? (
             <div className="text-center py-12 text-[#94A3B8]">긴급 처리 항목이 없습니다.</div>
           ) : (
-            urgentTodos.map((todo, i) => (
-              <div key={i} className="bg-white rounded-2xl border border-[#FEF3C7] p-5 shadow-sm">
+            urgentTodos.map((todo, i) => {
+              const isDone = !!done[`u${i}`]
+              return (
+              <div key={i} className={`rounded-2xl border p-5 shadow-sm transition-all ${
+                isDone ? 'border-[#D1FAE5] bg-[#F0FDF4]' : 'border-[#FEF3C7] bg-white'}`}>
                 <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-[#FFFBEB] flex items-center justify-center flex-shrink-0">
-                    <AlertTriangle size={18} className="text-[#F59E0B]" />
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isDone ? 'bg-[#ECFDF5]' : 'bg-[#FFFBEB]'}`}>
+                    {isDone
+                      ? <CheckCircle2 size={18} className="text-[#10B981]" />
+                      : <AlertTriangle size={18} className="text-[#F59E0B]" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="font-semibold text-[#1E293B]">{todo.action}</span>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-[#FFFBEB] text-[#D97706] border border-[#FEF3C7]">
-                        긴급
-                      </span>
+                      <span className={`font-semibold ${isDone ? 'line-through text-[#94A3B8]' : 'text-[#1E293B]'}`}>{todo.action}</span>
+                      {!isDone && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-[#FFFBEB] text-[#D97706] border border-[#FEF3C7]">
+                          긴급
+                        </span>
+                      )}
                     </div>
                     <div className="text-sm text-[#64748B] mb-2">{todo.reason}</div>
                     <div className="flex items-center gap-4 text-xs text-[#94A3B8]">
@@ -98,9 +116,18 @@ export default function PaymentsPage() {
                       <span>기한: {todo.deadline}</span>
                     </div>
                   </div>
+                  <button
+                    onClick={() => toggleUrgent(i)}
+                    className={`flex-shrink-0 flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors ${
+                      isDone
+                        ? 'border-[#D1FAE5] text-[#10B981] bg-white hover:bg-[#F0FDF4]'
+                        : 'border-[#E2E8F0] text-[#64748B] hover:border-[#10B981] hover:text-[#10B981]'}`}
+                  >
+                    {isDone ? <><CheckCircle2 size={13} /> 완료됨</> : <><Circle size={13} /> 처리 완료</>}
+                  </button>
                 </div>
               </div>
-            ))
+            )})
           )}
         </div>
       )}

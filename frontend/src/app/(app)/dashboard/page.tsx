@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, TrendingUp, PauseCircle, DollarSign, CheckSquare, Sparkles, Share2, Check, FileDown } from 'lucide-react'
+import { ArrowRight, TrendingUp, PauseCircle, DollarSign, CheckSquare, Sparkles, Share2, Check, FileDown, ShieldCheck } from 'lucide-react'
 import { analysisStore, fmt, fmtAmount, CRISIS_LABELS, CRISIS_EMOJI, priorityBadge } from '@/lib/utils'
 import { analysisApi } from '@/lib/api'
 import { printAnalysisReport } from '@/lib/pdfReport'
@@ -69,24 +69,28 @@ export default function DashboardPage() {
       value: `${todos.length}건`,
       sub: `긴급 ${todos.filter(t => t.priority === 'HIGH').length}건`,
       color: '#F59E0B', bg: '#FFFBEB',
+      preview: todos.slice(0, 3).map(t => t.action),
     },
     {
       href: '/benefits', icon: DollarSign, label: '받을 돈',
       value: `${fmtAmount(summary.totalReceivableMin, '0원')}~`,
       sub: `최대 ${fmtAmount(summary.totalReceivableMax, '0원')}`,
       color: '#10B981', bg: '#ECFDF5',
+      preview: receivable.slice(0, 3).map(r => r.name),
     },
     {
       href: '/payments', icon: PauseCircle, label: '미룰 것',
       value: `${holdable.length}건`,
       sub: '유예 가능 항목',
       color: '#2563EB', bg: '#EFF6FF',
+      preview: holdable.slice(0, 3).map(h => h.name),
     },
     {
       href: '/tasks',   icon: TrendingUp, label: '행동',
       value: `${actions.length}건`,
       sub: `긴급 ${actions.filter(a => a.priority === 'HIGH').length}건`,
       color: '#8B5CF6', bg: '#F5F3FF',
+      preview: actions.slice(0, 3).map(a => a.name),
     },
   ]
 
@@ -102,6 +106,10 @@ export default function DashboardPage() {
             </span>
           </div>
           <h1 className="text-2xl font-bold text-[#1E293B]">내 금융 위기 대응 현황</h1>
+          <div className="flex items-center gap-1.5 mt-1.5 text-xs text-[#059669]">
+            <ShieldCheck size={13} />
+            <span>공식 복지·법령 근거 기반 · 금액은 규칙 엔진 산정 · AI 응답 이중 검증</span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => { if (!printAnalysisReport(analysis)) alert('팝업이 차단되어 리포트를 열 수 없습니다. 팝업 허용 후 다시 시도해주세요.') }}
@@ -154,7 +162,7 @@ export default function DashboardPage() {
 
       {/* 4분면 카드 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {quadrants.map(({ href, icon: Icon, label, value, sub, color, bg }) => (
+        {quadrants.map(({ href, icon: Icon, label, value, sub, color, bg, preview }) => (
           <Link key={label} href={href}
             className="bg-white rounded-2xl border border-[#E2E8F0] p-5 hover:shadow-md hover:-translate-y-0.5 transition-all group">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
@@ -164,6 +172,23 @@ export default function DashboardPage() {
             <div className="text-xs text-[#64748B] mb-1">{label}</div>
             <div className="text-2xl font-bold tabular-nums" style={{ color }}>{value}</div>
             <div className="text-xs text-[#94A3B8] mt-1">{sub}</div>
+
+            {/* hover 시 상위 항목 미리보기 펼침 */}
+            {preview.length > 0 && (
+              <div className="grid grid-rows-[0fr] group-hover:grid-rows-[1fr] transition-all duration-300 ease-out">
+                <div className="overflow-hidden">
+                  <ul className="mt-3 pt-3 border-t border-[#F1F5F9] space-y-1.5">
+                    {preview.map((p, i) => (
+                      <li key={i} className="flex items-start gap-1.5 text-xs text-[#475569] leading-snug">
+                        <span className="mt-1 w-1 h-1 rounded-full flex-shrink-0" style={{ background: color }} />
+                        <span className="line-clamp-1">{p}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center gap-1 mt-3 text-xs font-medium group-hover:gap-2 transition-all"
                  style={{ color }}>
               자세히 보기 <ArrowRight size={12} />

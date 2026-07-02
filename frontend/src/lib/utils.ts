@@ -179,6 +179,28 @@ export const taskStore = {
   },
 }
 
+/** 납부 관리의 긴급 항목 처리완료 상태 localStorage 헬퍼(항목키→완료여부) */
+export const paymentStore = {
+  key: (analysisId: number) => `cf_payments_${analysisId}`,
+  load: (analysisId: number): Record<string, boolean> => {
+    try {
+      const raw = localStorage.getItem(paymentStore.key(analysisId))
+      return raw ? JSON.parse(raw) : {}
+    } catch { return {} }
+  },
+  toggle: (analysisId: number, itemKey: string) => {
+    const current = paymentStore.load(analysisId)
+    current[itemKey] = !current[itemKey]
+    localStorage.setItem(paymentStore.key(analysisId), JSON.stringify(current))
+    return current
+  },
+  /** 완료되지 않은 긴급 항목 수 = 사이드바 배지 값 */
+  pendingCount: (analysisId: number, urgentKeys: string[]): number => {
+    const done = paymentStore.load(analysisId)
+    return urgentKeys.filter(k => !done[k]).length
+  },
+}
+
 /** 마이데이터 항목 on/off 선택 상태 localStorage 헬퍼 (필드키→포함여부) */
 export const myDataSelectionStore = {
   load: (): Record<string, boolean> | null => {
