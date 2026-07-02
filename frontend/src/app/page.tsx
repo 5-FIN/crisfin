@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { ArrowRight, Shield, Clock, TrendingUp, CheckCircle, BookOpen, Scale, Database, ShieldCheck } from 'lucide-react'
+import BrandMark from '@/components/BrandMark'
 
 const CRISIS_TYPES = [
   { emoji: '🏥', label: '입원/수술' },
@@ -22,7 +23,7 @@ export default function LandingPage() {
       <nav className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-[#E2E8F0]">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#2563EB] flex items-center justify-center text-white text-sm font-bold">C</div>
+            <BrandMark size={32} />
             <span className="font-bold text-[#1E293B] text-lg">CrisFin</span>
           </Link>
           <div className="flex items-center gap-3">
@@ -186,7 +187,7 @@ export default function LandingPage() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 pt-8 border-t border-[#E2E8F0]">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-7 h-7 rounded-lg bg-[#2563EB] flex items-center justify-center text-white text-xs font-bold">C</div>
+                <BrandMark size={28} />
                 <span className="font-bold text-[#1E293B]">CrisFin</span>
               </div>
               <p className="text-xs text-[#94A3B8] max-w-md leading-relaxed">

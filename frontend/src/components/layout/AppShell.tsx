@@ -10,6 +10,7 @@ import {
 import { cn, tokenStore, analysisStore, CRISIS_LABELS } from '@/lib/utils'
 import { authApi } from '@/lib/api'
 import ThemeToggle from './ThemeToggle'
+import BrandMark from '@/components/BrandMark'
 
 const NAV = [
   { href: '/guide',     icon: BookOpen,        label: '무료 길라잡이' },
@@ -42,7 +43,7 @@ function SidebarNav({
         onClick={onClose}
         className="flex items-center gap-2 px-5 py-5 border-b border-[#E2E8F0] hover:bg-[#F8FAFC] transition-colors"
       >
-        <div className="w-8 h-8 rounded-lg bg-[#2563EB] flex items-center justify-center text-white text-sm font-bold">C</div>
+        <BrandMark size={32} />
         <span className="font-bold text-[#1E293B] text-lg">CrisFin</span>
       </Link>
 

@@ -7,6 +7,7 @@ import { Loader2, CheckCircle, ArrowRight } from 'lucide-react'
 import { analysisApi } from '@/lib/api'
 import { CRISIS_LABELS, CRISIS_EMOJI, fmt } from '@/lib/utils'
 import type { AnalysisResultResponse } from '@/lib/types'
+import BrandMark from '@/components/BrandMark'
 
 /**
  * 공개 공유 페이지 — 토큰으로 분석 결과를 읽기 전용 조회한다.
@@ -53,7 +54,7 @@ export default function SharedResultPage() {
       {/* 상단바 */}
       <header className="h-14 bg-white border-b border-[#E2E8F0] flex items-center px-4 md:px-8">
         <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-[#2563EB] flex items-center justify-center text-white text-sm font-bold">C</div>
+          <BrandMark size={32} />
           <span className="font-bold text-[#1E293B]">CrisFin</span>
         </Link>
         <span className="ml-3 text-xs text-[#94A3B8]">공유된 분석 결과</span>
