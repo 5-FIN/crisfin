@@ -3,6 +3,7 @@ package com.finfive.crisfin.domain.analysis;
 import com.finfive.crisfin.domain.analysis.dto.AnalysisRequest;
 import com.finfive.crisfin.domain.analysis.dto.AnalysisResultResponse;
 import com.finfive.crisfin.domain.analysis.dto.ReinferRequest;
+import com.finfive.crisfin.domain.analysis.dto.ShareLinkResponse;
 import com.finfive.crisfin.domain.payment.PaymentService;
 import com.finfive.crisfin.domain.user.User;
 import com.finfive.crisfin.global.exception.CrisfinException;
@@ -118,5 +119,36 @@ class AnalysisControllerTest {
                 .isInstanceOf(CrisfinException.class)
                 .extracting(e -> ((CrisfinException) e).getErrorCode())
                 .isEqualTo(ErrorCode.UNAUTHORIZED);
+    }
+
+    @Test
+    void share_anonymous_throwsUnauthorized() {
+        // 로그인 없이 공유 링크 생성 시도 → 401
+        assertThatThrownBy(() -> controller.share(5L, null))
+                .isInstanceOf(CrisfinException.class)
+                .extracting(e -> ((CrisfinException) e).getErrorCode())
+                .isEqualTo(ErrorCode.UNAUTHORIZED);
+    }
+
+    @Test
+    void share_authenticated_returnsToken() {
+        when(analysisService.createShareLink(5L, 1L)).thenReturn("tok123");
+
+        ResponseEntity<ApiResponse<ShareLinkResponse>> res = controller.share(5L, user(1L));
+
+        assertThat(res.getStatusCode().value()).isEqualTo(200);
+        assertThat(res.getBody()).isNotNull();
+        assertThat(res.getBody().getData().getShareToken()).isEqualTo("tok123");
+    }
+
+    @Test
+    void getShared_public_returnsResult() {
+        // 토큰만으로 공개 조회(인증 없음)
+        when(analysisService.getSharedResult("tok123")).thenReturn(result);
+
+        ResponseEntity<ApiResponse<AnalysisResultResponse>> res = controller.getShared("tok123");
+
+        assertThat(res.getStatusCode().value()).isEqualTo(200);
+        assertThat(res.getBody().getData()).isSameAs(result);
     }
 }

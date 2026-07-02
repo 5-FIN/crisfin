@@ -224,6 +224,67 @@ public class AnalysisService {
         return toResponse(result, resultNode);
     }
 
+    /**
+     * Creates (or returns the existing) public share token for an owned analysis result.
+     *
+     * <p>Ownership is enforced identically to {@link #getResult(Long, Long)}: a missing id
+     * and a result owned by someone else both raise {@link ErrorCode#ANALYSIS_NOT_FOUND}.
+     * Idempotent — an already-shared result returns its existing token.</p>
+     *
+     * @param id     analysis result primary key
+     * @param userId the authenticated caller's id (must own the result)
+     * @return the existing or newly generated unguessable share token
+     */
+    @Transactional
+    public String createShareLink(Long id, Long userId) {
+        AnalysisResult result = analysisResultRepository.findById(id)
+                .filter(r -> r.getUserId() != null && r.getUserId().equals(userId))
+                .orElseThrow(() -> new CrisfinException(ErrorCode.ANALYSIS_NOT_FOUND,
+                        "분석 결과를 찾을 수 없습니다. id=" + id));
+
+        if (result.getShareToken() == null) {
+            result.assignShareToken(java.util.UUID.randomUUID().toString().replace("-", ""));
+        }
+        return result.getShareToken();
+    }
+
+    /**
+     * Revokes the public share link for an owned analysis result. Ownership is enforced
+     * identically to {@link #getResult(Long, Long)}.
+     *
+     * @param id     analysis result primary key
+     * @param userId the authenticated caller's id (must own the result)
+     */
+    @Transactional
+    public void revokeShareLink(Long id, Long userId) {
+        AnalysisResult result = analysisResultRepository.findById(id)
+                .filter(r -> r.getUserId() != null && r.getUserId().equals(userId))
+                .orElseThrow(() -> new CrisfinException(ErrorCode.ANALYSIS_NOT_FOUND,
+                        "분석 결과를 찾을 수 없습니다. id=" + id));
+
+        result.revokeShare();
+    }
+
+    /**
+     * Retrieves a shared analysis result by its public token — no login, no ownership.
+     *
+     * <p>Access is granted solely by holding the unguessable token; this is the intended
+     * public read-only path (distinct from the ownership-checked {@link #getResult(Long, Long)}).</p>
+     *
+     * @param token the public share token
+     * @return the corresponding response DTO
+     * @throws CrisfinException with {@link ErrorCode#ANALYSIS_NOT_FOUND} if the token is unknown
+     */
+    @Transactional(readOnly = true)
+    public AnalysisResultResponse getSharedResult(String token) {
+        AnalysisResult result = analysisResultRepository.findByShareToken(token)
+                .orElseThrow(() -> new CrisfinException(ErrorCode.ANALYSIS_NOT_FOUND,
+                        "공유된 분석 결과를 찾을 수 없습니다."));
+
+        JsonNode resultNode = objectMapper.valueToTree(result.getResultJson());
+        return toResponse(result, resultNode);
+    }
+
     // ------------------------------------------------------------------ //
     //  Private helpers
     // ------------------------------------------------------------------ //

@@ -3,6 +3,7 @@ package com.finfive.crisfin.domain.analysis;
 import com.finfive.crisfin.domain.analysis.dto.AnalysisRequest;
 import com.finfive.crisfin.domain.analysis.dto.AnalysisResultResponse;
 import com.finfive.crisfin.domain.analysis.dto.ReinferRequest;
+import com.finfive.crisfin.domain.analysis.dto.ShareLinkResponse;
 import com.finfive.crisfin.domain.payment.PaymentService;
 import com.finfive.crisfin.domain.user.User;
 import com.finfive.crisfin.global.exception.CrisfinException;
@@ -105,6 +106,59 @@ public class AnalysisController {
         }
         AnalysisResultResponse response = analysisService.getResult(id, userId);
         return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    /**
+     * Creates (or returns the existing) public share link for an owned analysis result.
+     * 로그인 필수 + 소유권 검증.
+     *
+     * @param id          analysis result ID
+     * @param userDetails Spring Security principal
+     * @return {@link ApiResponse} wrapping the {@link ShareLinkResponse}
+     */
+    @PostMapping("/{id}/share")
+    public ResponseEntity<ApiResponse<ShareLinkResponse>> share(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        Long userId = extractUserId(userDetails);
+        if (userId == null) {
+            throw new CrisfinException(ErrorCode.UNAUTHORIZED, "로그인이 필요합니다.");
+        }
+        String token = analysisService.createShareLink(id, userId);
+        return ResponseEntity.ok(ApiResponse.ok(ShareLinkResponse.of(token)));
+    }
+
+    /**
+     * Revokes the public share link for an owned analysis result. 로그인 필수 + 소유권 검증.
+     *
+     * @param id          analysis result ID
+     * @param userDetails Spring Security principal
+     */
+    @DeleteMapping("/{id}/share")
+    public ResponseEntity<ApiResponse<Void>> revokeShare(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        Long userId = extractUserId(userDetails);
+        if (userId == null) {
+            throw new CrisfinException(ErrorCode.UNAUTHORIZED, "로그인이 필요합니다.");
+        }
+        analysisService.revokeShareLink(id, userId);
+        return ResponseEntity.ok(ApiResponse.ok());
+    }
+
+    /**
+     * Publicly fetches a shared analysis result by its unguessable token. No auth, no
+     * ownership — access is granted solely by holding the token (read-only).
+     *
+     * @param token the public share token
+     * @return {@link ApiResponse} wrapping the stored analysis result
+     */
+    @GetMapping("/shared/{token}")
+    public ResponseEntity<ApiResponse<AnalysisResultResponse>> getShared(
+            @PathVariable String token) {
+        return ResponseEntity.ok(ApiResponse.ok(analysisService.getSharedResult(token)));
     }
 
     // ------------------------------------------------------------------ //

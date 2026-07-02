@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, ExternalLink, Loader2, Building2, MapPin } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Loader2, Building2, MapPin, Star } from 'lucide-react'
 import { welfareApi } from '@/lib/api'
 import { CRISIS_LABELS } from '@/lib/utils'
 import type { WelfareBenefitResponse } from '@/lib/types'
@@ -26,6 +26,7 @@ export default function WelfareDetailPage() {
   const [item, setItem] = useState<WelfareBenefitResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [isFav, setIsFav] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -33,7 +34,22 @@ export default function WelfareDetailPage() {
       .then(setItem)
       .catch(() => setError('복지 제도를 불러오지 못했습니다.'))
       .finally(() => setLoading(false))
+    // 로그인 상태면 즐겨찾기 여부 확인(비로그인/실패는 조용히 무시)
+    welfareApi.favorites()
+      .then(list => setIsFav(list.some(f => f.id === id)))
+      .catch(() => {})
   }, [id])
+
+  async function toggleFav() {
+    const next = !isFav
+    setIsFav(next) // 낙관적 토글
+    try {
+      if (next) await welfareApi.addFavorite(id)
+      else await welfareApi.removeFavorite(id)
+    } catch {
+      setIsFav(!next) // 실패 시 롤백
+    }
+  }
 
   if (loading) {
     return <div className="flex justify-center py-24"><Loader2 size={28} className="text-[#2563EB] animate-spin" /></div>
@@ -64,7 +80,7 @@ export default function WelfareDetailPage() {
       {/* 헤더 */}
       <div className="flex items-start gap-3 mb-3">
         <div className="w-11 h-11 rounded-xl bg-[#EFF6FF] flex items-center justify-center flex-shrink-0 text-xl">🏛️</div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h1 className="text-xl font-bold text-[#1E293B] leading-snug">{item.serviceName}</h1>
           <div className="flex items-center gap-2 flex-wrap mt-1.5 text-xs text-[#64748B]">
             {item.ministryName && (
@@ -77,6 +93,10 @@ export default function WelfareDetailPage() {
             )}
           </div>
         </div>
+        <button onClick={toggleFav} title={isFav ? '즐겨찾기 해제' : '즐겨찾기'}
+          className={`flex-shrink-0 p-2 rounded-lg transition-colors ${isFav ? 'text-[#F59E0B]' : 'text-[#CBD5E1] hover:text-[#F59E0B]'}`}>
+          <Star size={20} fill={isFav ? 'currentColor' : 'none'} />
+        </button>
       </div>
 
       {/* 위기유형 태그 */}

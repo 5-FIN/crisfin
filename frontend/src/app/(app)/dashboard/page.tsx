@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, TrendingUp, PauseCircle, DollarSign, CheckSquare } from 'lucide-react'
-import { Sparkles } from 'lucide-react'
+import { ArrowRight, TrendingUp, PauseCircle, DollarSign, CheckSquare, Sparkles, Share2, Check } from 'lucide-react'
 import { analysisStore, fmt, fmtAmount, CRISIS_LABELS, CRISIS_EMOJI, priorityBadge } from '@/lib/utils'
+import { analysisApi } from '@/lib/api'
 import NoAnalysisEmptyState from '@/components/common/NoAnalysisEmptyState'
 import ReinferModal from '@/components/dashboard/ReinferModal'
 import type { AnalysisResultResponse } from '@/lib/types'
@@ -13,11 +13,26 @@ export default function DashboardPage() {
   const [analysis, setAnalysis] = useState<AnalysisResultResponse | null>(null)
   const [loaded, setLoaded] = useState(false)
   const [showReinfer, setShowReinfer] = useState(false)
+  const [shareState, setShareState] = useState<'idle' | 'sharing' | 'copied' | 'error'>('idle')
 
   useEffect(() => {
     setAnalysis(analysisStore.load())
     setLoaded(true)
   }, [])
+
+  async function handleShare(id: number) {
+    setShareState('sharing')
+    try {
+      const { shareToken } = await analysisApi.share(id)
+      const url = `${window.location.origin}/shared/${shareToken}`
+      await navigator.clipboard.writeText(url)
+      setShareState('copied')
+      setTimeout(() => setShareState('idle'), 2500)
+    } catch {
+      setShareState('error')
+      setTimeout(() => setShareState('idle'), 2500)
+    }
+  }
 
   if (!loaded) {
     return (
@@ -76,6 +91,14 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold text-[#1E293B]">내 금융 위기 대응 현황</h1>
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={() => handleShare(analysis.id)} disabled={shareState === 'sharing'}
+            className="text-xs text-[#64748B] hover:text-[#2563EB] flex items-center gap-1 border border-[#E2E8F0] rounded-lg px-3 py-1.5 transition-colors disabled:opacity-50">
+            {shareState === 'copied'
+              ? <><Check size={12} className="text-[#10B981]" /> 링크 복사됨</>
+              : shareState === 'error'
+                ? '공유 실패'
+                : <><Share2 size={12} /> {shareState === 'sharing' ? '생성 중...' : '공유'}</>}
+          </button>
           <button onClick={() => setShowReinfer(true)}
             className="text-xs text-white bg-[#8B5CF6] hover:bg-[#7C3AED] flex items-center gap-1 rounded-lg px-3 py-1.5 transition-colors font-medium">
             <Sparkles size={12} /> 개인화 재분석
