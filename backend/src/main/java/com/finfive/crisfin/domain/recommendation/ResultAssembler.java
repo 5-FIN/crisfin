@@ -61,4 +61,16 @@ public class ResultAssembler {
         summary.put("totalReceivableMax", evaluation.totalReceivableMax());
         resultMap.put("summary", summary);
     }
+
+    /**
+     * Rebuilds the timeline from the <em>current</em> {@code resultMap} todos/actions. Called
+     * after the harness sanitizes free-text fields so the timeline reflects the redacted
+     * content rather than the original (pre-sanitize) LLM output.
+     *
+     * @param resultMap the assembled result whose timeline should be regenerated in place
+     */
+    public void rebuildTimeline(Map<String, Object> resultMap) {
+        List<TimelinePhase> timeline = timelineBuilder.build(objectMapper.valueToTree(resultMap));
+        resultMap.put("timeline", objectMapper.convertValue(timeline, List.class));
+    }
 }
