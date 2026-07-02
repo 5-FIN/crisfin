@@ -66,4 +66,23 @@ class WelfareCrisisTaggerTest {
         assertThat(tagger.tag("바우처", null, "고용", "청년"))
                 .containsExactly("UNEMPLOYMENT");
     }
+
+    @Test
+    void tag_facilityOperatorGrant_returnsEmpty() {
+        // 시설/운영자 대상 보조금은 키워드가 매칭돼도 개인 추천 대상이 아니므로 태그 없음
+        // (예: "노숙인 재활시설 기능보강" — 요약에 '자활·재활'이 있어 잘못 매칭되던 사례)
+        assertThat(tagger.tag("노숙인 재활시설 기능보강",
+                "시설의 노후 설비를 보수·개선해 자활·재활 서비스를 제공", null, null))
+                .isEmpty();
+        assertThat(tagger.tag("장애인복지관 운영지원", "장애인 재활 프로그램 운영", null, null))
+                .isEmpty();
+    }
+
+    @Test
+    void tag_gigWorkerBenefit_isNotExcluded() {
+        // '플랫폼 종사자 고용보험료 지원'은 긱워커 개인 혜택 → 제외되면 안 됨
+        assertThat(tagger.tag("플랫폼 종사자 고용보험료 지원 사업",
+                "배달·대리 등 플랫폼 종사자의 고용보험료를 지원", null, null))
+                .contains("UNEMPLOYMENT");
+    }
 }
