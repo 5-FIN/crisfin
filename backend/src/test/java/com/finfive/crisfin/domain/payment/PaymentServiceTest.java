@@ -37,7 +37,7 @@ class PaymentServiceTest {
 
         CheckoutResponse res = paymentService.checkout(1L, PaymentPlan.SINGLE.name());
 
-        assertThat(res.getAmount()).isEqualTo(9900);
+        assertThat(res.getAmount()).isEqualTo(4900);
         assertThat(res.getPlan()).isEqualTo("SINGLE");
         assertThat(res.getOrderUid()).startsWith("order_");
 
@@ -61,7 +61,7 @@ class PaymentServiceTest {
         PaymentOrder order = PaymentOrder.builder()
                 .orderUid("order_abc")
                 .userId(1L)
-                .amount(9900)
+                .amount(4900)
                 .status(PaymentOrder.OrderStatus.PENDING)
                 .createdAt(LocalDateTime.now())
                 .plan(PaymentPlan.SINGLE.name())
@@ -84,7 +84,7 @@ class PaymentServiceTest {
         PaymentOrder order = PaymentOrder.builder()
                 .orderUid("order_unl")
                 .userId(1L)
-                .amount(19900)
+                .amount(29900)
                 .status(PaymentOrder.OrderStatus.PENDING)
                 .createdAt(LocalDateTime.now())
                 .plan(PaymentPlan.UNLIMITED_30D.name())

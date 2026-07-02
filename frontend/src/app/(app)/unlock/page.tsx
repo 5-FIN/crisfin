@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, Loader2, ShieldCheck, Sparkles, BookOpen } from 'lucide-react'
+import { Check, Loader2, Sparkles, BookOpen } from 'lucide-react'
 import { paymentApi } from '@/lib/api'
 import { pendingAnalysisStore, fmt } from '@/lib/utils'
 import { resumePendingAnalysis } from '@/lib/resumeAnalysis'
@@ -59,41 +59,39 @@ export default function UnlockPage() {
     phase === 'resume'   ? '분석 실행 중...' : ''
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12">
-      {/* 헤더 */}
-      <div className="text-center mb-10">
-        <h1 className="text-2xl md:text-3xl font-bold text-[#1E293B] mb-2">요금제를 선택하세요</h1>
-        <p className="text-sm text-[#64748B]">
-          {hasPending
-            ? '결제하면 방금 입력한 분석을 바로 이어서 실행합니다.'
-            : '무료로 정보를 둘러보거나, AI 맞춤 분석으로 위기를 정리하세요.'}
-        </p>
-      </div>
+    <div className="px-4 md:px-8 py-8 max-w-4xl mx-auto">
+      {/* 앱 다른 페이지와 동일한 좌측 정렬 헤더 */}
+      <h1 className="text-2xl font-bold text-[#1E293B] mb-2">요금제</h1>
+      <p className="text-sm text-[#64748B] mb-8">
+        {hasPending
+          ? '결제하면 방금 입력한 분석을 바로 이어서 실행합니다.'
+          : '무료로 정보를 둘러보거나, AI 맞춤 분석으로 위기를 정리하세요.'}
+      </p>
 
       {error && (
-        <div className="max-w-md mx-auto mb-6 px-3.5 py-2.5 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 text-center">
+        <div className="mb-6 px-3.5 py-2.5 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600">
           {error}
         </div>
       )}
 
       {loading ? (
-        <div className="flex justify-center py-16"><Loader2 size={28} className="text-[#2563EB] animate-spin" /></div>
+        <div className="flex justify-center py-16"><Loader2 size={26} className="text-[#2563EB] animate-spin" /></div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-start">
-          {/* 무료 카드 */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+          {/* 무료 */}
           <PlanCard
             name={FREE_PLAN.name}
             tagline={FREE_PLAN.tagline}
             price="무료"
             features={FREE_PLAN.features}
             ctaLabel="길라잡이 보기"
-            ctaIcon={<BookOpen size={16} />}
+            ctaIcon={<BookOpen size={15} />}
             onClick={() => router.push('/guide')}
             variant="free"
             disabled={busyPlan !== null}
           />
 
-          {/* 유료 플랜 카드 (SINGLE, UNLIMITED_30D) */}
+          {/* 유료 플랜 (SINGLE, UNLIMITED_30D) */}
           {plans.map(p => {
             const recommended = p.code === RECOMMENDED
             const busy = busyPlan === p.code
@@ -102,14 +100,14 @@ export default function UnlockPage() {
                 key={p.code}
                 name={p.name}
                 tagline={p.tagline}
-                price={`${fmt(p.priceKrw)}`}
+                price={fmt(p.priceKrw)}
                 priceSuffix={p.uses == null ? `/ ${p.durationDays}일` : `/ ${p.uses}회`}
                 features={p.features}
                 ctaLabel={busy ? busyLabel : '결제하고 시작'}
-                ctaIcon={busy ? <Loader2 size={16} className="animate-spin" /> : undefined}
+                ctaIcon={busy ? <Loader2 size={15} className="animate-spin" /> : undefined}
                 onClick={() => handlePay(p.code)}
                 variant={recommended ? 'recommended' : 'paid'}
-                badge={recommended ? '인기' : undefined}
+                badge={recommended ? '추천' : undefined}
                 disabled={busyPlan !== null}
               />
             )
@@ -117,10 +115,8 @@ export default function UnlockPage() {
         </div>
       )}
 
-      <div className="mt-8 flex flex-col items-center gap-3">
-        <div className="flex items-center gap-1.5 text-xs text-[#94A3B8]">
-          <ShieldCheck size={13} /> 테스트 결제(mock) · 결제 즉시 이용권이 활성화됩니다
-        </div>
+      <div className="mt-6 flex items-center justify-between">
+        <span className="text-xs text-[#94A3B8]">테스트 결제(mock) · 결제 즉시 이용권이 활성화됩니다</span>
         <button
           onClick={() => router.push('/dashboard')}
           disabled={busyPlan !== null}
@@ -133,7 +129,7 @@ export default function UnlockPage() {
   )
 }
 
-/* ── 플랜 카드 ── */
+/* ── 플랜 카드 (앱 카드 스타일과 일관) ── */
 function PlanCard({
   name, tagline, price, priceSuffix, features, ctaLabel, ctaIcon, onClick, variant, badge, disabled,
 }: {
@@ -151,23 +147,23 @@ function PlanCard({
 }) {
   const recommended = variant === 'recommended'
   return (
-    <div className={`relative bg-white rounded-2xl border p-6 shadow-sm flex flex-col ${
-      recommended ? 'border-[#2563EB] ring-2 ring-[#2563EB]/20 md:-mt-2' : 'border-[#E2E8F0]'
+    <div className={`relative bg-white rounded-2xl border p-5 shadow-sm flex flex-col ${
+      recommended ? 'border-[#2563EB]' : 'border-[#E2E8F0]'
     }`}>
       {badge && (
-        <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-bold text-white bg-[#2563EB] px-3 py-1 rounded-full flex items-center gap-1">
-          <Sparkles size={11} /> {badge}
+        <span className="absolute top-4 right-4 text-[11px] font-bold text-[#2563EB] bg-[#EFF6FF] border border-[#DBEAFE] px-2 py-0.5 rounded-full flex items-center gap-1">
+          <Sparkles size={10} /> {badge}
         </span>
       )}
-      <div className="mb-4">
-        <div className="font-bold text-[#1E293B] text-lg">{name}</div>
+      <div className="mb-3">
+        <div className="font-bold text-[#1E293B]">{name}</div>
         <div className="text-xs text-[#94A3B8] mt-0.5">{tagline}</div>
       </div>
-      <div className="flex items-baseline gap-1 mb-5">
-        <span className="text-2xl font-bold font-mono text-[#1E293B]">{price}</span>
+      <div className="flex items-baseline gap-1 mb-4">
+        <span className="text-xl font-bold font-mono text-[#1E293B]">{price}</span>
         {priceSuffix && <span className="text-xs text-[#94A3B8]">{priceSuffix}</span>}
       </div>
-      <ul className="space-y-2.5 mb-6 flex-1">
+      <ul className="space-y-2 mb-5 flex-1">
         {features.map(f => (
           <li key={f} className="flex items-start gap-2 text-sm text-[#475569]">
             <Check size={15} className="text-[#10B981] flex-shrink-0 mt-0.5" />
@@ -178,12 +174,10 @@ function PlanCard({
       <button
         onClick={onClick}
         disabled={disabled}
-        className={`w-full py-2.5 font-semibold rounded-xl transition-colors text-sm flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
+        className={`w-full py-2.5 font-semibold rounded-lg transition-colors text-sm flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
           variant === 'free'
             ? 'bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0]'
-            : recommended
-              ? 'bg-[#2563EB] text-white hover:bg-[#1D4ED8]'
-              : 'bg-[#1E293B] text-white hover:bg-[#0F172A]'
+            : 'bg-[#2563EB] text-white hover:bg-[#1D4ED8]'
         }`}
       >
         {ctaIcon} {ctaLabel}
