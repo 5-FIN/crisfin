@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, Shield, Clock, TrendingUp, CheckCircle, BookOpen } from 'lucide-react'
+import { ArrowRight, Shield, Clock, TrendingUp, CheckCircle, BookOpen, Scale, Database, ShieldCheck } from 'lucide-react'
 
 const CRISIS_TYPES = [
   { emoji: '🏥', label: '입원/수술' },
@@ -21,10 +21,10 @@ export default function LandingPage() {
       {/* 네브바 */}
       <nav className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-[#E2E8F0]">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-[#2563EB] flex items-center justify-center text-white text-sm font-bold">C</div>
             <span className="font-bold text-[#1E293B] text-lg">CrisFin</span>
-          </div>
+          </Link>
           <div className="flex items-center gap-3">
             <Link href="/login" className="text-sm text-[#475569] hover:text-[#1E293B] transition-colors">
               로그인
@@ -82,7 +82,7 @@ export default function LandingPage() {
                    style={{ background: color + '15' }}>
                 <Icon size={24} style={{ color }} />
               </div>
-              <div className="text-3xl font-bold font-mono" style={{ color }}>{value}</div>
+              <div className="text-3xl font-bold tabular-nums" style={{ color }}>{value}</div>
               <div className="text-sm text-[#64748B]">{label}</div>
             </div>
           ))}
@@ -162,8 +162,55 @@ export default function LandingPage() {
       </section>
 
       {/* 푸터 */}
-      <footer className="border-t border-[#E2E8F0] py-8 text-center text-xs text-[#94A3B8]">
-        © 2026 CrisFin (FIN5). 본 서비스는 참고용이며 전문가 상담을 권장합니다.
+      <footer className="border-t border-[#E2E8F0] bg-[#F9FAFB]">
+        <div className="max-w-6xl mx-auto px-6 py-12">
+          {/* 신뢰 배지 3종 */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+            {[
+              { icon: Scale, title: '공식 근거 기반', desc: '보건복지부·복지로 등 공공 제도와 관련 법령·행정 안내문을 근거로 안내합니다.' },
+              { icon: Database, title: '복지로 1,000+ 제도', desc: '전국 공식 복지 제도 데이터를 정기 동기화해 위기·지역별로 매칭합니다.' },
+              { icon: ShieldCheck, title: 'AI + 규칙 엔진 이중 검증', desc: '금액은 AI가 아닌 공식 산정식(규칙 엔진)으로 계산하고, 응답은 할루시네이션 하네스로 검증합니다.' },
+            ].map(({ icon: Icon, title, desc }) => (
+              <div key={title} className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-lg bg-[#EFF6FF] flex items-center justify-center flex-shrink-0">
+                  <Icon size={18} className="text-[#2563EB]" />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-[#1E293B] mb-0.5">{title}</div>
+                  <div className="text-xs text-[#64748B] leading-relaxed">{desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 pt-8 border-t border-[#E2E8F0]">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-7 h-7 rounded-lg bg-[#2563EB] flex items-center justify-center text-white text-xs font-bold">C</div>
+                <span className="font-bold text-[#1E293B]">CrisFin</span>
+              </div>
+              <p className="text-xs text-[#94A3B8] max-w-md leading-relaxed">
+                갑작스러운 금융 위기에서 지금 당장 해야 할 행동을 공식 근거 기반으로 정리해 드립니다.
+              </p>
+            </div>
+            <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+              <Link href="/guide" className="text-[#475569] hover:text-[#2563EB] transition-colors">무료 길라잡이</Link>
+              <Link href="/login" className="text-[#475569] hover:text-[#2563EB] transition-colors">로그인</Link>
+              <Link href="/signup" className="text-[#475569] hover:text-[#2563EB] transition-colors">분석 시작</Link>
+            </nav>
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-[#E2E8F0] text-[11px] text-[#94A3B8] leading-relaxed space-y-1">
+            <p>
+              참고 기준: 금융분야 AI 가이드라인 · 개인정보보호위원회 생성형 AI 안내서 · 복지로 공공데이터.
+              민감정보(계좌·카드·의료 원문)는 외부 AI에 전송하지 않으며 비식별 요약만 사용합니다.
+            </p>
+            <p>
+              본 서비스는 참고용 정보이며 법률·세무·금융 자문이 아닙니다. 실제 자격·금액·기한은 관할 기관에 반드시 확인하세요.
+            </p>
+            <p className="pt-1">© 2026 CrisFin (FIN5). All rights reserved.</p>
+          </div>
+        </div>
       </footer>
     </div>
   )

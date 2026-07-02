@@ -72,7 +72,7 @@ export default function SharedResultPage() {
         {summary && (
           <div className="bg-gradient-to-r from-[#ECFDF5] to-[#D1FAE5] rounded-2xl border border-[#A7F3D0] p-6 mb-6">
             <div className="text-sm text-[#059669] font-medium mb-1">예상 총 수령 가능액</div>
-            <div className="text-3xl font-bold font-mono text-[#10B981]">
+            <div className="text-3xl font-bold tabular-nums text-[#10B981]">
               {fmt(summary.totalReceivableMin)} ~ {fmt(summary.totalReceivableMax)}
             </div>
             <div className="text-xs text-[#6EE7B7] mt-1">긴급 처리 {summary.urgentCount}건 · {summary.thirtyDayPlan}</div>
@@ -141,7 +141,7 @@ function Row({ name, sub, right }: { name: string; sub: string; right?: string }
         <div className="text-sm font-medium text-[#1E293B] truncate">{name}</div>
         <div className="text-xs text-[#94A3B8] truncate">{sub}</div>
       </div>
-      {right && <div className="text-sm font-bold font-mono text-[#10B981] flex-shrink-0">{right}</div>}
+      {right && <div className="text-sm font-bold tabular-nums text-[#10B981] flex-shrink-0">{right}</div>}
     </div>
   )
 }

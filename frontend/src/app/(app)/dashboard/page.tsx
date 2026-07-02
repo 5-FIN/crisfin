@@ -135,7 +135,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-3">
           <div>
             <div className="text-xs text-[#64748B] mb-0.5">재정 생존 가능 기간 (추산)</div>
-            <div className="text-3xl font-bold font-mono text-[#1E293B]">{runwayDays}일</div>
+            <div className="text-3xl font-bold tabular-nums text-[#1E293B]">{runwayDays}일</div>
           </div>
           <div className="text-right">
             <div className="text-xs text-[#64748B]">긴급 처리 필요</div>
@@ -162,7 +162,7 @@ export default function DashboardPage() {
               <Icon size={20} style={{ color }} />
             </div>
             <div className="text-xs text-[#64748B] mb-1">{label}</div>
-            <div className="text-2xl font-bold font-mono" style={{ color }}>{value}</div>
+            <div className="text-2xl font-bold tabular-nums" style={{ color }}>{value}</div>
             <div className="text-xs text-[#94A3B8] mt-1">{sub}</div>
             <div className="flex items-center gap-1 mt-3 text-xs font-medium group-hover:gap-2 transition-all"
                  style={{ color }}>
@@ -220,7 +220,7 @@ export default function DashboardPage() {
                   {needsInput ? (
                     <div className="text-xs text-[#EA580C] flex-shrink-0">추가입력 필요</div>
                   ) : (
-                    <div className="text-sm font-bold font-mono text-[#10B981] flex-shrink-0">
+                    <div className="text-sm font-bold tabular-nums text-[#10B981] flex-shrink-0">
                       {fmt(item.estimatedMin as number)}+
                     </div>
                   )}

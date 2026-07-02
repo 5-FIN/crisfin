@@ -160,7 +160,7 @@ function PlanCard({
         <div className="text-xs text-[#94A3B8] mt-0.5">{tagline}</div>
       </div>
       <div className="flex items-baseline gap-1 mb-4">
-        <span className="text-xl font-bold font-mono text-[#1E293B]">{price}</span>
+        <span className="text-xl font-bold tabular-nums text-[#1E293B]">{price}</span>
         {priceSuffix && <span className="text-xs text-[#94A3B8]">{priceSuffix}</span>}
       </div>
       <ul className="space-y-2 mb-5 flex-1">

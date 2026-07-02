@@ -53,7 +53,7 @@ export default function PaymentsPage() {
               </div>
               <span className="text-xs text-[#64748B]">{label}</span>
             </div>
-            <div className="text-2xl font-bold font-mono" style={{ color }}>{value}</div>
+            <div className="text-2xl font-bold tabular-nums" style={{ color }}>{value}</div>
             <div className="text-xs text-[#94A3B8] mt-1">{sub}</div>
           </div>
         ))}
