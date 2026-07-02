@@ -23,7 +23,7 @@ class AnalysisHarnessTest {
     private final AnalysisHarness harness =
             new AnalysisHarness(List.of(contact, amount, phrasing, date));
 
-    private final HarnessContext ctx = new HarnessContext(CrisisType.UNEMPLOYMENT, Set.of());
+    private final HarnessContext ctx = new HarnessContext(CrisisType.UNEMPLOYMENT, Set.of(), "");
 
     private Map<String, Object> action(String name, String contactInfo, String deadline) {
         Map<String, Object> a = new HashMap<>();
@@ -131,7 +131,7 @@ class AnalysisHarnessTest {
     @Test
     void consistency_flagsNeedsMoreInputBenefitMentionedAssertively() {
         ConsistencyVerifier consistency = new ConsistencyVerifier();
-        HarnessContext ctxNmi = new HarnessContext(CrisisType.UNEMPLOYMENT, Set.of("긴급복지 생계지원"));
+        HarnessContext ctxNmi = new HarnessContext(CrisisType.UNEMPLOYMENT, Set.of("긴급복지 생계지원"), "");
         Map<String, Object> result = resultWith(List.of(),
                 List.of(todo("긴급복지 생계지원을 신청하세요", "D+3", "소득 단절")));
 

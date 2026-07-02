@@ -207,6 +207,16 @@ export interface HarnessFlag {
   action: string
 }
 
+/** 분석이 근거로 삼은 RAG 출처 조각 */
+export interface Citation {
+  /** 출처 유형: WELFARE(복지제도) | GUIDE(길라잡이) */
+  sourceType: string
+  /** 출처 내 식별자(행 id 등) */
+  sourceRef: string
+  /** 근거 본문 발췌(요약) */
+  snippet: string
+}
+
 export interface AnalysisResult {
   todos: TodoItem[]
   receivable: ReceivableItem[]
@@ -219,6 +229,8 @@ export interface AnalysisResult {
   needsMoreInput?: NeedsMoreInputItem[]
   /** 할루시네이션 하네스 검증 플래그(없거나 빈 배열이면 검증 통과) */
   harnessFlags?: HarnessFlag[]
+  /** 분석 근거로 검색된 공식 문서 출처(RAG). 없으면 근거 미검색 */
+  citations?: Citation[]
   disclaimer: string
 }
 

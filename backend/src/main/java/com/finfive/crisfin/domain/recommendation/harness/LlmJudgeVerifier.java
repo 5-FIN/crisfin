@@ -81,8 +81,14 @@ public class LlmJudgeVerifier implements OutputVerifier {
 
         try {
             String adviceJson = objectMapper.writeValueAsString(subset);
-            String userMessage = "[허용 제도 목록]\n" + systemPromptProvider.getPolicyBlock(ctx.crisisType())
-                    + "\n\n[검증 대상 조언]\n" + adviceJson;
+            // 정적 제도 목록 + 이번 분석에 실제 검색된 RAG 근거를 함께 제시해, judge가
+            // '허용 범위'를 검색된 근거 기준으로 판단하도록 한다(근거 없는 claim 탐지).
+            StringBuilder allowed = new StringBuilder("[허용 제도 목록]\n")
+                    .append(systemPromptProvider.getPolicyBlock(ctx.crisisType()));
+            if (ctx.evidence() != null && !ctx.evidence().isBlank()) {
+                allowed.append("\n\n[검색된 공식 근거]\n").append(ctx.evidence());
+            }
+            String userMessage = allowed + "\n\n[검증 대상 조언]\n" + adviceJson;
 
             LlmResponse resp = llmProviderRouter.complete(LlmRequest.builder()
                     .systemPrompt(JUDGE_SYSTEM)
