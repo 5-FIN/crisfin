@@ -1,106 +1,184 @@
 # CrisFin — 위기 상황 금융 길라잡이
 
 ![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk)
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.x-6DB33F?logo=springboot)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.3-6DB33F?logo=springboot)
+![Next.js](https://img.shields.io/badge/Next.js-15-000000?logo=nextdotjs)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16_+_pgvector-4169E1?logo=postgresql)
 
 ---
 
 ## 프로젝트 소개
 
-대한민국에는 **11조 2천억 원**에 달하는 미청구 보험금이 잠들어 있습니다. 갑작스러운 실직, 질병, 사고 등 위기 상황이 닥쳤을 때 사람들은 본인이 받을 수 있는 보험금과 정부 지원금이 무엇인지 파악하지 못한 채 경제적 어려움을 홀로 감당합니다. CrisFin은 위기 유형을 선택하면 마이데이터 기반으로 보유 금융 정보를 분석하고, AI가 청구 가능한 보험금·정부 혜택·금융 상품을 한눈에 정리해 주는 서비스입니다. 복잡한 금융 절차를 몰라 놓치는 권리 없이, 누구나 위기를 슬기롭게 극복할 수 있도록 돕습니다.
+갑작스러운 **입원·사고·실직·간병·사망** 같은 위기 상황이 닥치면, 사람들은 자신이 받을 수 있는 보험금·환급금·정부 지원금이 무엇인지 몰라 홀로 경제적 어려움을 감당합니다. 대한민국에는 11조 원이 넘는 미청구 보험금이 잠들어 있습니다.
+
+**CrisFin**은 위기 상황에서 "지금 당장 뭘 해야 하는지"를 알려주는 2티어 서비스입니다.
+
+- **무료 정보 길라잡이** — 로그인 없이 위기 유형별 핵심 정보와 "내 AI에 붙여넣을 프롬프트"를 제공.
+- **유료 AI 맞춤 분석** — 마이데이터·상황을 입력하면 LLM + 룰 엔진이 **할 일 · 받을 돈 · 미룰 것 · 행동** 4가지로 정리하고, 내 지역 맞춤 복지 제도까지 추천.
+
+> 금액은 **룰 엔진**이 산정하며, LLM은 전략 텍스트만 생성합니다(금액 환각 방지). 정책 근거는 **pgvector RAG**로 보강합니다.
 
 ---
 
-## 서비스 작동 방식
+## 핵심 기능
 
-```
-1. 위기 선택         2. 마이데이터          3. AI 분석            4. 4탭 결과
-─────────────    ──────────────────    ──────────────    ──────────────────────
-실직 / 질병 /    마이데이터 연동으로    보유 보험·자산·    보험금 청구 가이드
-사고 / 재난 중   보유 보험·금융 정보    지원 자격을        정부 지원금 안내
-하나를 선택      자동 수집              AI가 종합 분석     대출 상품 추천
-                                                          맞춤 액션플랜 제시
-```
-
-| 단계 | 내용 |
+| 기능 | 설명 |
 |------|------|
-| **1. 위기 선택** | 현재 처한 위기 유형(실직, 질병, 사고, 재난 등)을 선택합니다. |
-| **2. 마이데이터 연동** | 동의 기반 마이데이터 연동으로 보유 보험·금융 정보를 자동 수집합니다. |
-| **3. AI 분석** | AI가 위기 유형과 금융 데이터를 종합 분석하여 청구 가능성을 판단합니다. |
-| **4. 4탭 결과 제공** | 보험금 청구 / 정부 지원금 / 금융 상품 / 액션플랜을 탭별로 안내합니다. |
+| **무료 길라잡이** | 5개 위기 유형별 핵심 수칙·근거 법령 + 복사용 AI 프롬프트 (로그인 불필요) |
+| **AI 맞춤 분석** | 위기 유형 → 상황·마이데이터 입력 → LLM 전략 + 룰 엔진 금액산출 + RAG 근거 → 4분면 결과 |
+| **대시보드** | 할 일·받을 돈·미룰 것·행동 4분면 + 재정 생존 기간 추산 + 30일 긴급도 타임라인 |
+| **복지 매처** | 공공데이터 지자체복지 연동. **지역(시/도·시/군/구) + 위기유형 태그**로 필터, 상세 페이지, 즐겨찾기 |
+| **개인화 재분석** | 상황·재정 정보 일부만 바꿔 다시 추론(reinfer) |
+| **분석결과 공유** | 추측 불가 토큰 링크로 결과를 로그인 없이 공유(읽기 전용) |
+| **요금제/결제** | 무료 / 1회 분석권 / 30일 무제한 3플랜, mock 결제 + 이용권 만료·사용횟수 게이팅 |
+| **계정** | 회원가입(지역 포함) · 프로필/지역 수정 · 히스토리 · 가입 직후 온보딩 |
+| **보안** | JWT(access/refresh 회전, jti) · 로그인 실패 잠금 · 분석결과 소유권 검증(IDOR 방지) |
 
 ---
 
-## 로컬 실행 방법
+## 서비스 흐름
+
+```
+①  위기 선택          ②  상황·마이데이터        ③  AI 분석                ④  4분면 결과
+────────────      ────────────────────     ─────────────────      ──────────────────────
+입원 / 사고 /      직업·상황 설명 +          LLM 전략 +              ✅ 할 일   💰 받을 돈
+실직 / 간병 /      마이데이터(mock)          룰 엔진 금액산출 +       ⏸️ 미룰 것  📋 행동
+사망 중 선택       필드 선택 입력            pgvector RAG 근거        + 내 지역 맞춤 복지
+```
+
+---
+
+## 아키텍처
+
+모노레포 (`backend/` + `frontend/`), 3-tier 구성.
+
+```
+[ 브라우저 ]
+     │  (same-origin)
+┌────▼─────────────┐   /api/* 서버사이드 프록시    ┌──────────────────────┐
+│  frontend (Next) │ ───────────────────────────▶ │  backend (Spring Boot) │
+│  Vercel          │        (BACKEND_URL)          │  Render (Docker)       │
+└──────────────────┘                               └───────────┬────────────┘
+                                                    JPA/Flyway  │  WebClient
+                                          ┌─────────────────────▼──────┐   ┌──────────────┐
+                                          │ PostgreSQL 16 + pgvector    │   │ OpenAI / LLM  │
+                                          │ Neon (배포) / Docker (로컬)  │   │ 공공데이터포털 │
+                                          └────────────────────────────┘   └──────────────┘
+```
+
+- 프론트는 `next.config.ts` rewrites로 `/api/*`를 `BACKEND_URL`로 프록시 → 브라우저는 same-origin, CORS 부담 없음.
+- 인증은 **JWT + Authorization 헤더**(localStorage) 방식(쿠키 미사용).
+
+---
+
+## 기술 스택
+
+### Backend (`backend/`)
+| 분류 | 기술 |
+|------|------|
+| Language / Framework | Java 21 · Spring Boot 3.3 |
+| 영속성 | Spring Data JPA / Hibernate · Flyway 마이그레이션 |
+| 보안 | Spring Security + JWT (jjwt) |
+| 외부 연동 | Spring WebFlux `WebClient` (LLM · 공공데이터 API) |
+| AI / RAG | OpenAI Embeddings + pgvector 유사도 검색 · LLM 라우터(Gemini→Claude→OpenAI 폴백) |
+| API 문서 | springdoc-openapi (Swagger UI) |
+
+### Frontend (`frontend/`)
+| 분류 | 기술 |
+|------|------|
+| Framework | Next.js 15 (App Router) · React 18 · TypeScript |
+| 스타일 | Tailwind CSS |
+| 테스트 | Vitest + Testing Library |
+
+### Database / Infra
+| 분류 | 기술 |
+|------|------|
+| DB | PostgreSQL 16 + **pgvector** |
+| Container | Docker / Docker Compose |
+| CI | GitHub Actions (JaCoCo 백엔드 + Vitest 프론트 커버리지) |
+| 배포 | **Vercel**(프론트) + **Render**(백엔드 Docker) + **Neon**(DB) — [DEPLOY.md](DEPLOY.md) |
+
+---
+
+## 로컬 실행
 
 ### Prerequisites
+- Docker & Docker Compose (Postgres+pgvector 구동)
+- Java 21, Gradle 8.x (백엔드)
+- Node.js 20+ (프론트)
+- (선택) `OPENAI_API_KEY` — 없으면 RAG/유료 분석은 자동 비활성화되고 나머지는 정상 동작
+- (선택) `PUBLIC_DATA_API_KEY` — 공공데이터포털 지자체복지 API 키(복지 동기화용)
 
-- Java 21 이상
-- Gradle 8.x
-- PostgreSQL 16 이상 (하이브리드 RAG 사용 시 `pgvector` 확장 권장 — 없으면 V5 마이그레이션이 RAG 테이블을 건너뛰고 앱은 정상 기동)
-- (선택) Docker & Docker Compose
-
-> **하이브리드 RAG (정책 검색):** LLM 전략 생성 단계에 OpenAI 임베딩 + pgvector 기반 정책 RAG를 얹습니다. 자격·금액 산정은 rule 엔진이 담당하며 RAG는 "근거"만 보강합니다(금액 생성 금지). `OPENAI_API_KEY`가 없거나 `pgvector` 확장이 설치돼 있지 않으면 RAG는 자동 비활성화되며 나머지 기능은 그대로 동작합니다.
-
-> **유료 분석(결제 게이팅):** `POST /api/v1/analysis/recommend`는 로그인 + 활성 이용권이 필요합니다(미로그인 401, 미결제 402). `POST /api/v1/payments/checkout` → `confirm`(mock 결제)로 이용권을 즉시 활성화합니다. 가격은 `PAYMENT_PRICE`(기본 9900) 환경변수로 설정합니다.
-
-### DB 설정
-
-```sql
--- PostgreSQL에서 데이터베이스 및 사용자 생성
-CREATE DATABASE crisfin;
-CREATE USER crisfin_user WITH PASSWORD 'crisfin_password';
-GRANT ALL PRIVILEGES ON DATABASE crisfin TO crisfin_user;
-```
-
-`src/main/resources/application.yml` 또는 환경변수로 DB 접속 정보를 설정합니다.
-
-```yaml
-spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/crisfin
-    username: crisfin_user
-    password: crisfin_password
-```
-
-### 실행
-
+### 1) DB (Docker)
 ```bash
-# 프로젝트 루트에서
-./gradlew bootRun
+docker compose up -d      # pgvector/pgvector:pg16, DB/USER/PW = crisfin/crisfin/crisfin
 ```
 
-서버가 정상 기동되면 `http://localhost:8080` 에서 확인할 수 있습니다.
+### 2) 백엔드
+```bash
+# 환경변수(예): DB_URL, DB_USERNAME, DB_PASSWORD, JWT_SECRET, OPENAI_API_KEY ...
+cd backend && ./gradlew bootRun      # http://localhost:8080
+```
+Swagger UI: `http://localhost:8080/swagger-ui.html`
 
-Swagger UI: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
+### 3) 프론트
+```bash
+cd frontend && npm install && npm run dev      # http://localhost:3000
+```
+> 프론트는 `/api/*`를 `BACKEND_URL`(기본 `http://localhost:8080`)로 프록시합니다.
+
+### 주요 환경변수
+| Key | 용도 |
+|-----|------|
+| `DB_URL` / `DB_USERNAME` / `DB_PASSWORD` | Postgres 접속 |
+| `JWT_SECRET` | JWT 서명 키(256bit+) |
+| `OPENAI_API_KEY` | 임베딩(RAG) + LLM 분석 |
+| `LLM_PROVIDERS_ORDER` | LLM 폴백 순서(예: `OPENAI`) |
+| `PUBLIC_DATA_API_KEY` | 공공데이터 지자체복지 API |
+| `CORS_ALLOWED_ORIGINS` | 허용 오리진(프록시 구조라 대개 불요) |
+| `WELFARE_SYNC_ON_STARTUP` | 빈 DB 첫 부팅 자동 복지 동기화(기본 true; 무료 인스턴스는 false 권장) |
+| `PORT` | 백엔드 바인딩 포트(Render 등에서 주입) |
+| `BACKEND_URL` | (프론트) 백엔드 프록시 대상 |
 
 ---
 
-## API 엔드포인트
+## API 엔드포인트 (요약)
 
-| Method | URL | 인증 | 설명 |
+`공개` = 인증 불필요, `로그인` = JWT 필요, `유료` = 로그인 + 이용권, `관리자` = ROLE_ADMIN.
+
+| Method | URL | 접근 | 설명 |
 |--------|-----|------|------|
-| `POST` | `/api/v1/auth/register` | 불필요 | 회원가입 |
-| `POST` | `/api/v1/auth/login` | 불필요 | 로그인 |
-| `POST` | `/api/v1/auth/logout` | 필요 | 로그아웃 |
-| `GET` | `/api/v1/users/me` | 필요 | 내 프로필 조회 |
-| `PUT` | `/api/v1/users/me` | 필요 | 내 프로필 수정 |
-| `POST` | `/api/v1/crisis` | 필요 | 위기 분석 요청 |
-| `GET` | `/api/v1/crisis/{crisisId}` | 필요 | 분석 결과 조회 |
-| `POST` | `/api/v1/mydata/connect` | 필요 | 마이데이터 연동 |
-| `GET` | `/api/v1/mydata/status` | 필요 | 연동 상태 조회 |
-| `GET` | `/api/v1/insurances` | 필요 | 보험 목록 조회 |
-| `GET` | `/api/v1/insurances/{id}/claim` | 필요 | 청구 가이드 조회 |
-| `GET` | `/api/v1/benefits` | 필요 | 지원금·혜택 조회 |
+| `POST` | `/api/v1/auth/signup` · `/login` · `/refresh` · `/logout` | 공개 | 회원가입/로그인/토큰갱신/로그아웃 |
+| `GET` `PUT` | `/api/v1/users/me` | 로그인 | 내 프로필 조회/수정(닉네임·지역) |
+| `GET` | `/api/v1/crisis/types` | 공개 | 위기 유형 목록 |
+| `GET` | `/api/v1/guide/{crisisType}` | 공개 | 무료 길라잡이(위기별 정보 + 프롬프트) |
+| `POST` | `/api/v1/analysis/recommend` | 유료 | AI 맞춤 분석 실행 |
+| `POST` | `/api/v1/analysis/{id}/reinfer` | 유료 | 개인화 재분석 |
+| `GET` | `/api/v1/analysis/history` · `/results/{id}` | 로그인 | 히스토리 / 결과 조회(소유자만) |
+| `POST` `DELETE` | `/api/v1/analysis/{id}/share` | 로그인 | 공유 링크 생성/해제 |
+| `GET` | `/api/v1/analysis/shared/{token}` | 공개 | 공유 결과 조회(토큰) |
+| `GET` | `/api/v1/welfare/benefits` · `/benefits/{id}` | 공개 | 복지 목록(지역·위기 필터) / 상세 |
+| `GET` `POST` `DELETE` | `/api/v1/welfare/favorites` · `/{id}` | 로그인 | 즐겨찾기 목록/추가/해제 |
+| `GET` `POST` | `/api/v1/payments/plans` · `/checkout` · `/confirm` · `/entitlement` | 로그인 | 요금제/결제(mock)/이용권 |
+| `GET` `POST` | `/api/v1/mydata/mock` · `/filter` | 공개 | 마이데이터(mock) 조회/필드 선택 |
+| `POST` | `/api/v1/admin/welfare/sync` · `/admin/rag/reindex` | 관리자 | 복지 동기화 / RAG 재색인 |
 
-전체 상세 명세: [docs/API.md](docs/API.md)
+전체 상세 명세: [docs/API.md](docs/API.md) · 백엔드 구조: [docs/BACKEND.md](docs/BACKEND.md)
 
 ---
 
-## 팀 소개
+## 문서
+- [DEPLOY.md](DEPLOY.md) — 무료 배포 가이드(Vercel + Render + Neon)
+- [docs/API.md](docs/API.md) — API 상세 명세
+- [docs/BACKEND.md](docs/BACKEND.md) — 백엔드 아키텍처
+- [docs/CONVENTION.md](docs/CONVENTION.md) — 브랜치 전략 / 커밋 컨벤션
 
-**5FIN** — 5명이 만드는 금융 서비스
+---
+
+## 팀
+
+**FIN5 (5-FIN)** — 위기 금융 서비스
 
 | 역할 | 담당 |
 |------|------|
@@ -109,39 +187,3 @@ Swagger UI: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagge
 | Backend | 팀원 3 |
 | Frontend | 팀원 4 |
 | Frontend | 팀원 5 |
-
----
-
-## 기술 스택
-
-### Backend
-
-| 분류 | 기술 |
-|------|------|
-| Language | Java 21 |
-| Framework | Spring Boot 3.x |
-| ORM | Spring Data JPA / Hibernate |
-| Security | Spring Security + JWT |
-| Build Tool | Gradle |
-| API Docs | Swagger (springdoc-openapi) |
-
-### Database
-
-| 분류 | 기술 |
-|------|------|
-| RDBMS | PostgreSQL 16 |
-| Migration | Flyway |
-| Cache | Redis (세션 및 토큰 관리) |
-
-### Infrastructure
-
-| 분류 | 기술 |
-|------|------|
-| Container | Docker / Docker Compose |
-| CI/CD | GitHub Actions |
-| Cloud | AWS EC2 / RDS |
-
-### Conventions
-
-- 브랜치 전략 및 커밋 컨벤션: [docs/CONVENTION.md](docs/CONVENTION.md)
-- API 명세: [docs/API.md](docs/API.md)
