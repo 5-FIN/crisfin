@@ -102,6 +102,26 @@ class PaymentServiceTest {
     }
 
     @Test
+    void confirm_alreadyPaidOrder_isIdempotent_doesNotRefillEntitlement() {
+        // 이미 PAID인 주문을 재확인해도 소진된 이용권(remainingUses=0)이 재충전되면 안 된다.
+        PaymentOrder paid = PaymentOrder.builder()
+                .orderUid("order_paid").userId(1L).amount(4900)
+                .status(PaymentOrder.OrderStatus.PAID)
+                .createdAt(LocalDateTime.now()).plan(PaymentPlan.SINGLE.name()).build();
+        Entitlement spent = Entitlement.builder()
+                .userId(1L).plan("SINGLE").status(Entitlement.EntitlementStatus.INACTIVE)
+                .activatedAt(LocalDateTime.now()).expiresAt(LocalDateTime.now().plusDays(30))
+                .remainingUses(0).build();
+        when(paymentOrderRepository.findByOrderUid("order_paid")).thenReturn(Optional.of(paid));
+        when(entitlementRepository.findByUserId(1L)).thenReturn(Optional.of(spent));
+
+        EntitlementResponse res = paymentService.confirm(1L, "order_paid");
+
+        assertThat(res.getRemainingUses()).isZero(); // 재충전 안 됨(버그였다면 1로 리필)
+        assertThat(res.isActive()).isFalse();
+    }
+
+    @Test
     void consumeUse_singlePlan_decrementsToZero_thenInactive() {
         Entitlement single = Entitlement.builder()
                 .userId(1L)

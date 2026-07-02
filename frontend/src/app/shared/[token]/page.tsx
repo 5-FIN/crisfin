@@ -21,7 +21,11 @@ export default function SharedResultPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (!token) return
+    if (!token) {
+      setError('유효하지 않은 공유 링크입니다.')
+      setLoading(false)
+      return
+    }
     analysisApi.getShared(token)
       .then(setData)
       .catch(() => setError('공유된 분석 결과를 찾을 수 없거나 만료되었습니다.'))
@@ -64,14 +68,16 @@ export default function SharedResultPage() {
           </span>
         </div>
 
-        {/* 총 수령 예상액 */}
-        <div className="bg-gradient-to-r from-[#ECFDF5] to-[#D1FAE5] rounded-2xl border border-[#A7F3D0] p-6 mb-6">
-          <div className="text-sm text-[#059669] font-medium mb-1">예상 총 수령 가능액</div>
-          <div className="text-3xl font-bold font-mono text-[#10B981]">
-            {fmt(summary.totalReceivableMin)} ~ {fmt(summary.totalReceivableMax)}
+        {/* 총 수령 예상액 (구버전/엣지 레코드에 summary가 없을 수 있어 가드) */}
+        {summary && (
+          <div className="bg-gradient-to-r from-[#ECFDF5] to-[#D1FAE5] rounded-2xl border border-[#A7F3D0] p-6 mb-6">
+            <div className="text-sm text-[#059669] font-medium mb-1">예상 총 수령 가능액</div>
+            <div className="text-3xl font-bold font-mono text-[#10B981]">
+              {fmt(summary.totalReceivableMin)} ~ {fmt(summary.totalReceivableMax)}
+            </div>
+            <div className="text-xs text-[#6EE7B7] mt-1">긴급 처리 {summary.urgentCount}건 · {summary.thirtyDayPlan}</div>
           </div>
-          <div className="text-xs text-[#6EE7B7] mt-1">긴급 처리 {summary.urgentCount}건 · {summary.thirtyDayPlan}</div>
-        </div>
+        )}
 
         {/* 받을 돈 */}
         {receivable?.length > 0 && (

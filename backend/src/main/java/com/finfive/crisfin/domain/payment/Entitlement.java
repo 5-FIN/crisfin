@@ -68,6 +68,10 @@ public class Entitlement {
     public void consumeOneUse() {
         if (remainingUses != null && remainingUses > 0) {
             this.remainingUses -= 1;
+            if (this.remainingUses == 0) {
+                // 다 소진되면 상태도 INACTIVE로 맞춰 status 조회/관리 일관성 유지
+                this.status = EntitlementStatus.INACTIVE;
+            }
         }
     }
 

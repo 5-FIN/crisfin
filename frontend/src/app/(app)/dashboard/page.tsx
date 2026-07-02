@@ -22,15 +22,25 @@ export default function DashboardPage() {
 
   async function handleShare(id: number) {
     setShareState('sharing')
+    let url: string
     try {
       const { shareToken } = await analysisApi.share(id)
-      const url = `${window.location.origin}/shared/${shareToken}`
+      url = `${window.location.origin}/shared/${shareToken}`
+    } catch {
+      setShareState('error')
+      setTimeout(() => setShareState('idle'), 2500)
+      return
+    }
+    // 링크 생성 성공 — 클립보드 복사 시도. 클립보드가 없거나(비HTTPS) 거부되면
+    // 링크를 잃지 않도록 직접 노출해 수동 복사하게 한다.
+    try {
+      if (!navigator.clipboard) throw new Error('clipboard unavailable')
       await navigator.clipboard.writeText(url)
       setShareState('copied')
       setTimeout(() => setShareState('idle'), 2500)
     } catch {
-      setShareState('error')
-      setTimeout(() => setShareState('idle'), 2500)
+      window.prompt('아래 공유 링크를 복사하세요', url)
+      setShareState('idle')
     }
   }
 
