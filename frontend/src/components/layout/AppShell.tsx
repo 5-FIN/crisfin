@@ -7,7 +7,7 @@ import {
   LayoutDashboard, CreditCard, Gift, CheckSquare,
   History, Menu, LogOut, ChevronRight, BookOpen, Settings, Star, Search,
 } from 'lucide-react'
-import { cn, tokenStore, analysisStore, CRISIS_LABELS } from '@/lib/utils'
+import { cn, tokenStore, analysisStore, paymentStore, CRISIS_LABELS } from '@/lib/utils'
 import { authApi } from '@/lib/api'
 import ThemeToggle from './ThemeToggle'
 import BrandMark from '@/components/BrandMark'
@@ -15,7 +15,7 @@ import BrandMark from '@/components/BrandMark'
 const NAV = [
   { href: '/guide',     icon: BookOpen,        label: '무료 길라잡이' },
   { href: '/dashboard', icon: LayoutDashboard, label: '대시보드' },
-  { href: '/payments',  icon: CreditCard,      label: '납부 관리', badge: '!' },
+  { href: '/payments',  icon: CreditCard,      label: '납부 관리' },
   { href: '/benefits',  icon: Gift,             label: '혜택 매처' },
   { href: '/welfare',   icon: Search,           label: '복지 찾기' },
   { href: '/favorites', icon: Star,             label: '즐겨찾기' },
@@ -27,11 +27,13 @@ const NAV = [
 function SidebarNav({
   pathname,
   crisisLabel,
+  paymentBadge,
   onClose,
   onLogout,
 }: {
   pathname: string
   crisisLabel: string | null
+  paymentBadge: number
   onClose: () => void
   onLogout: () => void
 }) {
@@ -57,8 +59,12 @@ function SidebarNav({
 
       {/* 네비게이션 */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {NAV.map(({ href, icon: Icon, label, badge }) => {
+        {NAV.map(({ href, icon: Icon, label }) => {
           const active = pathname === href
+          // 납부 관리 배지는 미처리 긴급 건수(0이면 숨김)로 동적 표시
+          const effectiveBadge = href === '/payments' && paymentBadge > 0
+            ? String(paymentBadge)
+            : null
           return (
             <Link
               key={href}
@@ -73,9 +79,9 @@ function SidebarNav({
             >
               <Icon size={18} />
               <span className="flex-1">{label}</span>
-              {badge && (
-                <span className="w-5 h-5 rounded-full bg-[#F59E0B] text-white text-[10px] font-bold flex items-center justify-center">
-                  {badge}
+              {effectiveBadge && (
+                <span className="min-w-5 h-5 px-1 rounded-full bg-[#F59E0B] text-white text-[10px] font-bold flex items-center justify-center">
+                  {effectiveBadge}
                 </span>
               )}
             </Link>
@@ -104,11 +110,28 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   // localStorage는 마운트 이후에만 읽어 SSR/CSR 하이드레이션 불일치를 방지한다.
   const [crisisLabel, setCrisisLabel] = useState<string | null>(null)
+  const [paymentBadge, setPaymentBadge] = useState(0)
   useEffect(() => {
     const analysis = analysisStore.load()
     setCrisisLabel(
       analysis ? (CRISIS_LABELS[analysis.crisisType as string] ?? analysis.crisisType) : null,
     )
+    // 납부 관리 배지 = 미처리 긴급(HIGH) 항목 수. pathname 변경 + 납부 페이지의
+    // 완료 토글(커스텀 이벤트)마다 재계산해 사이드바 배지를 실시간 반영한다.
+    function computeBadge() {
+      const a = analysisStore.load()
+      if (a?.result?.todos) {
+        const urgentKeys = (a.result.todos as { priority: string }[])
+          .filter(t => t.priority === 'HIGH')
+          .map((_, i) => `u${i}`)
+        setPaymentBadge(paymentStore.pendingCount(a.id, urgentKeys))
+      } else {
+        setPaymentBadge(0)
+      }
+    }
+    computeBadge()
+    window.addEventListener('cf-payment-updated', computeBadge)
+    return () => window.removeEventListener('cf-payment-updated', computeBadge)
   }, [pathname])
 
   async function handleLogout() {
@@ -127,7 +150,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen bg-[#F9FAFB] overflow-hidden">
       {/* 데스크탑 사이드바 */}
       <aside className="hidden md:flex w-60 flex-col bg-white border-r border-[#E2E8F0] flex-shrink-0">
-        <SidebarNav pathname={pathname} crisisLabel={crisisLabel} onClose={() => setOpen(false)} onLogout={handleLogout} />
+        <SidebarNav pathname={pathname} crisisLabel={crisisLabel} paymentBadge={paymentBadge} onClose={() => setOpen(false)} onLogout={handleLogout} />
       </aside>
 
       {/* 모바일 드로어 오버레이 */}
@@ -135,7 +158,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className="fixed inset-0 z-40 md:hidden">
           <div className="absolute inset-0 bg-black/30" onClick={() => setOpen(false)} />
           <aside className="absolute left-0 top-0 h-full w-64 bg-white shadow-xl z-50">
-            <SidebarNav pathname={pathname} crisisLabel={crisisLabel} onClose={() => setOpen(false)} onLogout={handleLogout} />
+            <SidebarNav pathname={pathname} crisisLabel={crisisLabel} paymentBadge={paymentBadge} onClose={() => setOpen(false)} onLogout={handleLogout} />
           </aside>
         </div>
       )}

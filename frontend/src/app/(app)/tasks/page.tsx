@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { CheckCircle, Circle } from 'lucide-react'
+import { CheckCircle, Circle, PartyPopper, Sparkles } from 'lucide-react'
 import { analysisStore, taskStore, priorityBadge } from '@/lib/utils'
 import NoAnalysisEmptyState from '@/components/common/NoAnalysisEmptyState'
 import type { AnalysisResultResponse, TimelinePhase } from '@/lib/types'
@@ -71,6 +71,25 @@ export default function TasksPage() {
     <div className="px-4 md:px-8 py-8 max-w-3xl mx-auto">
       <h1 className="text-2xl font-bold text-[#1E293B] mb-2">액션 체크리스트</h1>
       <p className="text-sm text-[#64748B] mb-8">긴급도 순으로 정렬된 30일 타임라인입니다.</p>
+
+      {/* 100% 달성 축하 배너 */}
+      {percentage === 100 && totalCount > 0 && (
+        <div className="mb-8 rounded-2xl p-6 text-white shadow-sm relative overflow-hidden"
+             style={{ background: 'linear-gradient(135deg, #10B981 0%, #2563EB 100%)' }}>
+          <Sparkles size={80} className="absolute -right-3 -top-3 opacity-20" />
+          <div className="flex items-center gap-4 relative">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
+              <PartyPopper size={26} />
+            </div>
+            <div>
+              <div className="text-lg font-bold mb-0.5">모든 액션을 완료했어요! 🎉</div>
+              <div className="text-sm text-white/85">
+                {totalCount}개 항목을 전부 처리하셨습니다. 위기 대응의 핵심 행동을 마쳤어요 — 정말 잘하셨습니다.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 전체 진행률 */}
       <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6 mb-8 shadow-sm">
