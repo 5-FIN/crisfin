@@ -69,6 +69,28 @@ class LlmResponseValidatorTest {
     }
 
     @Test
+    void validateAndParse_markdownFencedJson_isExtractedAndParsed() {
+        // LLM이 순수 JSON 지시를 어기고 ```json 코드펜스로 감싸는 경우
+        String fenced = "```json\n" + VALID_JSON + "\n```";
+
+        JsonNode root = validator.validateAndParse(fenced);
+
+        assertThat(root).isNotNull();
+        assertThat(root.has("summary")).isTrue();
+    }
+
+    @Test
+    void validateAndParse_proseWrappedJson_isExtractedAndParsed() {
+        // JSON 앞뒤로 설명 문장이 붙는 경우 최외곽 객체만 추출해 파싱해야 한다.
+        String prose = "요청하신 분석 결과입니다.\n" + VALID_JSON + "\n\n**참고**: 실제 금액은 다를 수 있습니다.";
+
+        JsonNode root = validator.validateAndParse(prose);
+
+        assertThat(root).isNotNull();
+        assertThat(root.path("summary").has("totalReceivableMax")).isTrue();
+    }
+
+    @Test
     void validateAndParse_amountOverSanityThreshold_stillReturns() {
         // 임계값(1억) 초과 시 경고 로그만 남기고 통과해야 한다.
         String highAmount = """

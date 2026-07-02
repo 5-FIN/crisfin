@@ -43,9 +43,12 @@ public class OpenAiProvider implements LlmProvider {
         }
         messages.add(Map.of("role", "user", "content", request.getUserMessage()));
 
+        // response_format=json_object로 모델이 마크다운/설명을 섞지 못하게 강제한다.
+        // (시스템 프롬프트에 "JSON" 지시가 포함돼 있어 OpenAI json 모드 사용 요건 충족)
         Map<String, Object> body = Map.of(
                 "model", model,
-                "messages", messages
+                "messages", messages,
+                "response_format", Map.of("type", "json_object")
         );
 
         try {

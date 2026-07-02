@@ -41,7 +41,7 @@ public class LlmResponseValidator {
     public JsonNode validateAndParse(String json) {
         JsonNode root;
         try {
-            root = objectMapper.readTree(json);
+            root = objectMapper.readTree(extractJson(json));
         } catch (JsonProcessingException e) {
             log.error("[LlmResponseValidator] JSON 파싱 실패: {}", e.getMessage());
             throw new CrisfinException(ErrorCode.LLM_RESPONSE_PARSE_ERROR,
@@ -65,5 +65,41 @@ public class LlmResponseValidator {
         }
 
         return root;
+    }
+
+    /**
+     * LLM이 순수 JSON만 반환하도록 지시받았더라도 실제로는 ```json 코드펜스나 앞뒤
+     * 설명 문장을 덧붙이는 경우가 있다. 파싱 전에 최외곽 JSON 객체 본문만 안전하게
+     * 추출해 프로바이더(GEMINI/CLAUDE/OPENAI)와 무관하게 견고성을 높인다.
+     *
+     * @param raw LLM 원문
+     * @return 추출된 JSON 문자열(추출 불가 시 원문 trim)
+     */
+    private String extractJson(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        String s = raw.trim();
+
+        // ```json ... ``` 또는 ``` ... ``` 코드펜스 제거
+        if (s.startsWith("```")) {
+            int firstNewline = s.indexOf('\n');
+            if (firstNewline >= 0) {
+                s = s.substring(firstNewline + 1);
+            }
+            int closingFence = s.lastIndexOf("```");
+            if (closingFence >= 0) {
+                s = s.substring(0, closingFence);
+            }
+            s = s.trim();
+        }
+
+        // 앞뒤에 설명 문장이 남아 있으면 최외곽 중괄호 범위만 취한다
+        int start = s.indexOf('{');
+        int end = s.lastIndexOf('}');
+        if (start >= 0 && end > start) {
+            return s.substring(start, end + 1);
+        }
+        return s;
     }
 }
