@@ -9,6 +9,10 @@ import com.finfive.crisfin.domain.analysis.dto.ReinferRequest;
 import com.finfive.crisfin.domain.crisis.CrisisType;
 import com.finfive.crisfin.domain.payment.PaymentService;
 import com.finfive.crisfin.domain.recommendation.ResultAssembler;
+import com.finfive.crisfin.domain.recommendation.harness.AnalysisHarness;
+import com.finfive.crisfin.domain.recommendation.harness.HarnessContext;
+import com.finfive.crisfin.domain.recommendation.harness.HarnessFlag;
+import com.finfive.crisfin.domain.recommendation.harness.Severity;
 import com.finfive.crisfin.domain.recommendation.rag.PolicyRetrievalService;
 import com.finfive.crisfin.domain.recommendation.rag.RetrievedPolicy;
 import com.finfive.crisfin.global.exception.CrisfinException;
@@ -52,6 +56,7 @@ public class AnalysisService {
     private final SystemPromptProvider systemPromptProvider;
     private final PolicyRetrievalService policyRetrievalService;
     private final ResultAssembler resultAssembler;
+    private final AnalysisHarness analysisHarness;
     private final ObjectMapper objectMapper;
     private final PaymentService paymentService;
 
@@ -145,27 +150,49 @@ public class AnalysisService {
         promptInjectionDetector.validate(situationDescription);
 
         String systemPrompt = systemPromptProvider.getSystemPrompt(crisisType);
-        String userMessage = buildUserMessage(crisisType, situationDescription, maskedData, applicantProfile);
+        String baseUserMessage = buildUserMessage(crisisType, situationDescription, maskedData, applicantProfile);
 
         log.info("[AnalysisService] Sending LLM request for crisisType={}, userId={}", crisisType, userId);
 
-        LlmResponse llmResponse = llmProviderRouter.complete(
-                LlmRequest.builder()
-                        .systemPrompt(systemPrompt)
-                        .userMessage(userMessage)
-                        .maxTokens(2048)
-                        .temperature(0.3)
-                        .build()
-        );
+        // 할루시네이션 하네스: 생성 → 검증 → (HARD 위반 시) 위반 피드백을 붙여 1회 재생성.
+        LlmResponse llmResponse = null;
+        Map<String, Object> resultMap = null;
+        List<HarnessFlag> flags = List.of();
+        String userMessage = baseUserMessage;
 
-        JsonNode llmNode = llmResponseValidator.validateAndParse(llmResponse.getContent());
+        for (int attempt = 0; attempt <= 1; attempt++) {
+            llmResponse = llmProviderRouter.complete(
+                    LlmRequest.builder()
+                            .systemPrompt(systemPrompt)
+                            .userMessage(userMessage)
+                            .maxTokens(2048)
+                            .temperature(0.3)
+                            .build()
+            );
 
-        @SuppressWarnings("unchecked")
-        Map<String, Object> resultMap = objectMapper.convertValue(llmNode, Map.class);
+            JsonNode llmNode = llmResponseValidator.validateAndParse(llmResponse.getContent());
+            resultMap = objectMapper.convertValue(llmNode, new TypeReference<Map<String, Object>>() {});
 
-        // Rule engine owns receivable amounts / status / needsMoreInput / summary totals;
-        // timeline is built (urgency-sorted) from the LLM strategy. LLM amounts are discarded.
-        resultAssembler.enrich(resultMap, llmNode, crisisType, applicantProfile);
+            // Rule engine owns receivable amounts / status / needsMoreInput / summary totals;
+            // timeline is built (urgency-sorted) from the LLM strategy. LLM amounts are discarded.
+            resultAssembler.enrich(resultMap, llmNode, crisisType, applicantProfile);
+
+            HarnessContext ctx = new HarnessContext(crisisType, needsMoreInputNames(resultMap));
+            flags = analysisHarness.detect(resultMap, ctx);
+
+            if (!AnalysisHarness.hasHard(flags) || attempt == 1) {
+                break;
+            }
+            log.warn("[AnalysisService] 하네스 HARD 위반 감지 — 자가수정 재생성 시도. userId={}, 위반={}건",
+                    userId, flags.stream().filter(f -> f.severity() == Severity.HARD).count());
+            userMessage = baseUserMessage + analysisHarness.buildRepairFeedback(flags);
+        }
+
+        // 최종 정제: 재생성 후에도 남은 HARD 위반을 제거하고, 정제된 본문으로 타임라인 재생성.
+        HarnessContext finalCtx = new HarnessContext(crisisType, needsMoreInputNames(resultMap));
+        flags = analysisHarness.sanitize(resultMap, finalCtx);
+        resultAssembler.rebuildTimeline(resultMap);
+        resultMap.put("harnessFlags", objectMapper.convertValue(flags, List.class));
 
         AnalysisResult saved = analysisResultRepository.save(
                 AnalysisResult.builder()
@@ -183,6 +210,28 @@ public class AnalysisService {
         log.info("[AnalysisService] Analysis saved with id={}, provider={}", saved.getId(), saved.getLlmProvider());
 
         return toResponse(saved, objectMapper.valueToTree(resultMap));
+    }
+
+    /**
+     * Extracts the rule-engine "추가 입력 필요" benefit names from the assembled result, for the
+     * harness consistency check (added in a later phase). Safe against shape variations.
+     */
+    @SuppressWarnings("unchecked")
+    private java.util.Set<String> needsMoreInputNames(Map<String, Object> resultMap) {
+        Object nmi = resultMap == null ? null : resultMap.get("needsMoreInput");
+        if (!(nmi instanceof List<?> list)) {
+            return java.util.Set.of();
+        }
+        java.util.Set<String> names = new java.util.HashSet<>();
+        for (Object item : list) {
+            if (item instanceof Map<?, ?> m) {
+                Object name = m.get("benefitName");
+                if (name instanceof String s && !s.isBlank()) {
+                    names.add(s);
+                }
+            }
+        }
+        return names;
     }
 
     private Map<String, Object> toProfileMap(ApplicantProfile profile) {
