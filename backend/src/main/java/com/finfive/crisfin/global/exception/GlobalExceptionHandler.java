@@ -4,10 +4,13 @@ import com.finfive.crisfin.global.response.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.stream.Collectors;
@@ -49,6 +52,29 @@ public class GlobalExceptionHandler {
                         .build())
                 .build();
 
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    /**
+     * Malformed request body (unparseable/invalid JSON), missing required query
+     * parameter, or a query/path parameter of the wrong type. These are client
+     * errors → 400 (previously fell through to the catch-all as a misleading 500).
+     */
+    @ExceptionHandler({
+            HttpMessageNotReadableException.class,
+            MissingServletRequestParameterException.class,
+            MethodArgumentTypeMismatchException.class
+    })
+    public ResponseEntity<ApiResponse<Void>> handleBadRequest(Exception ex) {
+        log.warn("[BadRequest] {}: {}", ex.getClass().getSimpleName(), ex.getMessage());
+        ApiResponse<Void> body = ApiResponse.<Void>builder()
+                .success(false)
+                .error(ApiResponse.ErrorInfo.builder()
+                        .code("BAD_REQUEST")
+                        .message("요청 형식이 올바르지 않습니다.")
+                        .detail(ex.getMessage())
+                        .build())
+                .build();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
