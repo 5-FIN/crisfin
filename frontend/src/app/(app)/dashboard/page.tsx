@@ -180,7 +180,7 @@ export default function DashboardPage() {
             {todos.slice(0, 3).map((todo, i) => {
               const badge = priorityBadge(todo.priority)
               return (
-                <div key={i} className="flex items-start gap-3 p-3 rounded-xl" style={{ background: '#F8FAFC' }}>
+                <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-[#F8FAFC]">
                   <span className="text-xs font-medium px-2 py-1 rounded-full flex-shrink-0"
                         style={{ background: badge.bg, color: badge.color }}>
                     {badge.label}
