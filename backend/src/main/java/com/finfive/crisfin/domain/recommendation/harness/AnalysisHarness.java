@@ -64,6 +64,28 @@ public class AnalysisHarness {
     }
 
     /**
+     * Merges the final surfaced flag set. {@link #sanitize(Map, HarnessContext)} produces the
+     * mutating verifiers' results (contact/amount marked {@code STRIPPED}, plus SOFT flags)
+     * but skips detect-only verifiers such as the LLM judge. We therefore start from the last
+     * {@code detectFlags} (which include the judge's semantic findings) and upgrade any flag
+     * that was actually stripped to {@code STRIPPED}, so nothing detected is lost from the
+     * response while stripped fields are reported accurately.
+     *
+     * @param detectFlags    flags from the final detect pass (includes judge/consistency)
+     * @param sanitizedFlags flags from the sanitize pass (subset that could be redacted)
+     * @return the reconciled flag list to persist/surface
+     */
+    public List<HarnessFlag> finalizeFlags(List<HarnessFlag> detectFlags, List<HarnessFlag> sanitizedFlags) {
+        java.util.Set<String> stripped = sanitizedFlags.stream()
+                .filter(f -> "STRIPPED".equals(f.action()))
+                .map(f -> f.field() + "|" + f.type())
+                .collect(Collectors.toSet());
+        return detectFlags.stream()
+                .map(f -> stripped.contains(f.field() + "|" + f.type()) ? f.withAction("STRIPPED") : f)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Builds a Korean corrective instruction listing the HARD violations, to append to the
      * LLM user message on the self-repair retry.
      */

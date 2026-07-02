@@ -189,8 +189,10 @@ public class AnalysisService {
         }
 
         // 최종 정제: 재생성 후에도 남은 HARD 위반을 제거하고, 정제된 본문으로 타임라인 재생성.
+        // 판사 등 detect 전용(비변형) 검증 결과가 유실되지 않도록 detect 플래그와 병합한다.
         HarnessContext finalCtx = new HarnessContext(crisisType, needsMoreInputNames(resultMap));
-        flags = analysisHarness.sanitize(resultMap, finalCtx);
+        List<HarnessFlag> sanitizedFlags = analysisHarness.sanitize(resultMap, finalCtx);
+        flags = analysisHarness.finalizeFlags(flags, sanitizedFlags);
         resultAssembler.rebuildTimeline(resultMap);
         resultMap.put("harnessFlags", objectMapper.convertValue(flags, List.class));
 

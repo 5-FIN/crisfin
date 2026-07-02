@@ -129,6 +129,41 @@ class AnalysisHarnessTest {
     }
 
     @Test
+    void consistency_flagsNeedsMoreInputBenefitMentionedAssertively() {
+        ConsistencyVerifier consistency = new ConsistencyVerifier();
+        HarnessContext ctxNmi = new HarnessContext(CrisisType.UNEMPLOYMENT, Set.of("긴급복지 생계지원"));
+        Map<String, Object> result = resultWith(List.of(),
+                List.of(todo("긴급복지 생계지원을 신청하세요", "D+3", "소득 단절")));
+
+        List<HarnessFlag> flags = consistency.inspect(result, ctxNmi, false);
+        assertThat(flags).anyMatch(f -> f.type().equals("ELIGIBILITY_UNCERTAIN") && f.severity() == Severity.SOFT);
+    }
+
+    @Test
+    void consistency_noNeedsMoreInput_noFlags() {
+        ConsistencyVerifier consistency = new ConsistencyVerifier();
+        Map<String, Object> result = resultWith(List.of(),
+                List.of(todo("긴급복지 생계지원을 신청하세요", "D+3", "소득 단절")));
+
+        assertThat(consistency.inspect(result, ctx, false)).isEmpty();
+    }
+
+    @Test
+    void finalizeFlags_keepsJudgeFlagsAndMarksStripped() {
+        List<HarnessFlag> detect = List.of(
+                new HarnessFlag("actions[0].contactInfo", "FABRICATED_CONTACT", Severity.HARD, "가짜", "FLAGGED"),
+                new HarnessFlag("todos[1].action", "UNGROUNDED_CLAIM", Severity.HARD, "범위밖", "FLAGGED"));
+        List<HarnessFlag> sanitized = List.of(
+                new HarnessFlag("actions[0].contactInfo", "FABRICATED_CONTACT", Severity.HARD, "가짜", "STRIPPED"));
+
+        List<HarnessFlag> merged = harness.finalizeFlags(detect, sanitized);
+
+        assertThat(merged).hasSize(2);
+        assertThat(merged).anyMatch(f -> f.type().equals("FABRICATED_CONTACT") && f.action().equals("STRIPPED"));
+        assertThat(merged).anyMatch(f -> f.type().equals("UNGROUNDED_CLAIM") && f.action().equals("FLAGGED"));
+    }
+
+    @Test
     void repairFeedback_listsHardViolationsOnly() {
         List<HarnessFlag> flags = List.of(
                 HarnessFlag.hard("actions[0].contactInfo", "FABRICATED_CONTACT", "가짜 번호"),

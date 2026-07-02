@@ -86,6 +86,17 @@ public class SystemPromptProvider {
         return ROLE_HEADER + policiesFor(crisisType) + OUTPUT_CONTRACT;
     }
 
+    /**
+     * Returns the crisis-type "적용 가능 제도" block — the authoritative set of programs the
+     * analysis may reference. Exposed for the harness LLM-judge to ground-check the output.
+     *
+     * @param crisisType the crisis category
+     * @return the policy block text for the type
+     */
+    public String getPolicyBlock(CrisisType crisisType) {
+        return policiesFor(crisisType);
+    }
+
     /** 위기 유형별 적용 가능 제도 블록. */
     private String policiesFor(CrisisType crisisType) {
         return switch (crisisType) {
