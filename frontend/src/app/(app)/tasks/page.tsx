@@ -77,10 +77,10 @@ export default function TasksPage() {
         <div className="flex items-center justify-between mb-3">
           <div>
             <div className="text-xs text-[#64748B] mb-0.5">전체 진행률</div>
-            <div className="text-3xl font-bold font-mono text-[#1E293B]">{percentage}%</div>
+            <div className="text-3xl font-bold tabular-nums text-[#1E293B]">{percentage}%</div>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-bold text-[#10B981] font-mono">{doneCount}</div>
+            <div className="text-2xl font-bold text-[#10B981] tabular-nums">{doneCount}</div>
             <div className="text-xs text-[#64748B]">/ {totalCount} 완료</div>
           </div>
         </div>

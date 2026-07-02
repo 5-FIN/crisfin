@@ -36,11 +36,15 @@ function SidebarNav({
 }) {
   return (
     <div className="flex flex-col h-full">
-      {/* 로고 */}
-      <div className="flex items-center gap-2 px-5 py-5 border-b border-[#E2E8F0]">
+      {/* 로고 — 클릭 시 홈(대시보드)으로 */}
+      <Link
+        href="/dashboard"
+        onClick={onClose}
+        className="flex items-center gap-2 px-5 py-5 border-b border-[#E2E8F0] hover:bg-[#F8FAFC] transition-colors"
+      >
         <div className="w-8 h-8 rounded-lg bg-[#2563EB] flex items-center justify-center text-white text-sm font-bold">C</div>
         <span className="font-bold text-[#1E293B] text-lg">CrisFin</span>
-      </div>
+      </Link>
 
       {/* 위기 상태 배지 */}
       {crisisLabel && (

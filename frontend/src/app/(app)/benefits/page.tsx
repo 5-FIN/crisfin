@@ -74,7 +74,7 @@ export default function BenefitsPage() {
       {/* 총 수령액 카드 */}
       <div className="bg-gradient-to-r from-[#ECFDF5] to-[#D1FAE5] rounded-2xl border border-[#A7F3D0] p-6 mb-8">
         <div className="text-sm text-[#059669] font-medium mb-1">예상 총 수령 가능액</div>
-        <div className="text-4xl font-bold font-mono text-[#10B981]">
+        <div className="text-4xl font-bold tabular-nums text-[#10B981]">
           {fmt(totalMin)} ~ {fmt(totalMax)}
         </div>
         <div className="text-xs text-[#6EE7B7] mt-1">AI 분석 기준 · 실제 수령액은 상이할 수 있습니다</div>
@@ -122,7 +122,7 @@ export default function BenefitsPage() {
                         </span>
                       ) : (
                         <>
-                          <div className="text-lg font-bold font-mono text-[#10B981]">{fmt(item.estimatedMin as number)}+</div>
+                          <div className="text-lg font-bold tabular-nums text-[#10B981]">{fmt(item.estimatedMin as number)}+</div>
                           {item.estimatedMax != null && (
                             <div className="text-xs text-[#94A3B8]">최대 {fmt(item.estimatedMax)}</div>
                           )}
