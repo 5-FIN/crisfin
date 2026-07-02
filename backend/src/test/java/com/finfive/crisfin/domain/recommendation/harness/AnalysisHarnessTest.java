@@ -164,6 +164,50 @@ class AnalysisHarnessTest {
     }
 
     @Test
+    void outputPii_masksReExposedAccountOrCard() {
+        OutputPiiVerifier pii = new OutputPiiVerifier(new com.finfive.crisfin.global.filter.PiiMaskingService());
+        Map<String, Object> result = resultWith(List.of(),
+                List.of(todo("계좌 123-456-789012로 입금 확인", "D+1", "카드 1234-5678-9012-3456 정리")));
+
+        List<HarnessFlag> detected = pii.inspect(result, ctx, false);
+        assertThat(detected).anyMatch(f -> f.type().equals("OUTPUT_PII") && f.severity() == Severity.HARD);
+
+        pii.inspect(result, ctx, true);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> t = (Map<String, Object>) ((List<?>) result.get("todos")).get(0);
+        assertThat((String) t.get("action")).doesNotContain("123-456-789012");
+    }
+
+    @Test
+    void outputPii_cleanNarrative_passes() {
+        OutputPiiVerifier pii = new OutputPiiVerifier(new com.finfive.crisfin.global.filter.PiiMaskingService());
+        Map<String, Object> result = resultWith(
+                List.of(action("실업급여 신청", "고용노동부 1350", "D+14")),
+                List.of(todo("워크넷 구직등록 (180일 기준 확인)", "D+1", "자격 요건")));
+
+        assertThat(pii.inspect(result, ctx, false)).isEmpty();
+    }
+
+    @Test
+    void recommendation_flagsProductSolicitation() {
+        RecommendationVerifier rec = new RecommendationVerifier();
+        Map<String, Object> result = resultWith(List.of(),
+                List.of(todo("이 대출을 신청하세요", "D+1", "이 보험이 가장 좋습니다")));
+
+        List<HarnessFlag> flags = rec.inspect(result, ctx, false);
+        assertThat(flags).anyMatch(f -> f.type().equals("PRODUCT_SOLICITATION") && f.severity() == Severity.SOFT);
+    }
+
+    @Test
+    void recommendation_debtDeferralAdvice_isNotFlagged() {
+        RecommendationVerifier rec = new RecommendationVerifier();
+        Map<String, Object> result = resultWith(List.of(),
+                List.of(todo("대출 상환 유예 가능 여부를 은행에 신청·확인하세요", "D+3", "연체 예방")));
+
+        assertThat(rec.inspect(result, ctx, false)).isEmpty();
+    }
+
+    @Test
     void repairFeedback_listsHardViolationsOnly() {
         List<HarnessFlag> flags = List.of(
                 HarnessFlag.hard("actions[0].contactInfo", "FABRICATED_CONTACT", "가짜 번호"),

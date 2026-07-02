@@ -34,6 +34,12 @@ public class PiiMaskingService {
     private static final Pattern CARD_PATTERN =
             Pattern.compile("([0-9]{4}-){3}[0-9]{4}");
 
+    // 계좌번호 유사: 하이픈으로 구분된 3개 숫자 그룹, 마지막 그룹 4자리 이상
+    // (예: 123-456-789012, 356-05-012345). 마지막 그룹을 4자리 이상으로 제한해
+    // 날짜(2024-01-15)의 오탐을 피한다.
+    private static final Pattern ACCOUNT_PATTERN =
+            Pattern.compile("[0-9]{2,6}-[0-9]{2,6}-[0-9]{4,7}");
+
     /**
      * Returns a deep copy of {@code data} with PII fields and values masked.
      *
@@ -92,7 +98,7 @@ public class PiiMaskingService {
      *   <li>Card-like sequences (NNNN-NNNN-NNNN-NNNN) → first 6 chars + {@code "-**-****"}</li>
      * </ol>
      */
-    String maskString(String value) {
+    public String maskString(String value) {
         if (value == null) {
             return null;
         }
@@ -105,6 +111,9 @@ public class PiiMaskingService {
 
         // Korean RRN
         masked = RRN_PATTERN.matcher(masked).replaceAll("[주민번호제거]");
+
+        // 계좌번호(하이픈 3그룹) — 카드/주민번호 이후, 원시 숫자 전화 패턴 이전에 처리
+        masked = ACCOUNT_PATTERN.matcher(masked).replaceAll("[계좌정보제거]");
 
         // Phone / long digit sequences
         masked = PHONE_PATTERN.matcher(masked).replaceAll("***-****-****");
