@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { BookOpen, Zap, MapPin, LayoutDashboard, ArrowRight, Check } from 'lucide-react'
+import BrandMark from '@/components/BrandMark'
 
 /** 온보딩 스텝 정의 */
 const STEPS = [
@@ -50,7 +51,7 @@ export default function WelcomePage() {
       {/* 상단바 */}
       <header className="h-14 flex items-center justify-between px-4 md:px-8">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-[#2563EB] flex items-center justify-center text-white text-sm font-bold">C</div>
+          <BrandMark size={32} />
           <span className="font-bold text-[#1E293B]">CrisFin</span>
         </div>
         <button onClick={() => finish('/diagnosis')} className="text-xs text-[#94A3B8] hover:text-[#64748B]">

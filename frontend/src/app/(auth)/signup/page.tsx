@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { authApi } from '@/lib/api'
 import { tokenStore } from '@/lib/utils'
 import { SIDO_LIST, sigunguOf } from '@/lib/regions'
+import BrandMark from '@/components/BrandMark'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -41,7 +42,7 @@ export default function SignupPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-9 h-9 rounded-xl bg-[#2563EB] flex items-center justify-center text-white font-bold">C</div>
+            <BrandMark size={36} />
             <span className="font-bold text-[#1E293B] text-xl">CrisFin</span>
           </Link>
           <h1 className="text-2xl font-bold text-[#1E293B]">회원가입</h1>
