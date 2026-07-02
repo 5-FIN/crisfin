@@ -8,6 +8,7 @@ import { analysisApi } from '@/lib/api'
 import { printAnalysisReport } from '@/lib/pdfReport'
 import NoAnalysisEmptyState from '@/components/common/NoAnalysisEmptyState'
 import ReinferModal from '@/components/dashboard/ReinferModal'
+import HarnessNotice from '@/components/dashboard/HarnessNotice'
 import type { AnalysisResultResponse } from '@/lib/types'
 
 export default function DashboardPage() {
@@ -124,6 +125,9 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* AI 응답 검증(하네스) 결과 */}
+      <HarnessNotice flags={result.harnessFlags} />
 
       {/* Runway 바 */}
       <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 mb-6 shadow-sm">
