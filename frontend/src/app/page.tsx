@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { ArrowRight, Shield, Clock, TrendingUp, CheckCircle, BookOpen, Scale, Database, ShieldCheck } from 'lucide-react'
 import BrandMark from '@/components/BrandMark'
+import AuthNavCta from '@/components/landing/AuthNavCta'
 
 const CRISIS_TYPES = [
   { emoji: '🏥', label: '입원/수술' },
@@ -27,15 +28,7 @@ export default function LandingPage() {
             <span className="font-bold text-[#1E293B] text-lg">CrisFin</span>
           </Link>
           <div className="flex items-center gap-3">
-            <Link href="/login" className="text-sm text-[#475569] hover:text-[#1E293B] transition-colors">
-              로그인
-            </Link>
-            <Link
-              href="/signup"
-              className="px-4 py-2 bg-[#2563EB] text-white text-sm font-medium rounded-lg hover:bg-[#1D4ED8] transition-colors"
-            >
-              시작하기
-            </Link>
+            <AuthNavCta />
           </div>
         </div>
       </nav>
@@ -196,8 +189,6 @@ export default function LandingPage() {
             </div>
             <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
               <Link href="/guide" className="text-[#475569] hover:text-[#2563EB] transition-colors">무료 길라잡이</Link>
-              <Link href="/login" className="text-[#475569] hover:text-[#2563EB] transition-colors">로그인</Link>
-              <Link href="/signup" className="text-[#475569] hover:text-[#2563EB] transition-colors">분석 시작</Link>
             </nav>
           </div>
 
