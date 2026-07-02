@@ -28,7 +28,7 @@ export default function SignupPage() {
         regionSgg: form.regionSgg || undefined,
       })
       tokenStore.set(res.accessToken, res.refreshToken)
-      router.push('/diagnosis')
+      router.push('/welcome')
     } catch (err) {
       setError(err instanceof Error ? err.message : '회원가입 중 오류가 발생했습니다.')
     } finally {
