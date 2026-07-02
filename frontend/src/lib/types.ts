@@ -193,6 +193,20 @@ export interface NeedsMoreInputItem {
   missingInputs: string[]
 }
 
+/** 할루시네이션 하네스가 남긴 검증 플래그 */
+export interface HarnessFlag {
+  /** 위반이 발견된 필드 경로 (예: actions[0].contactInfo) */
+  field: string
+  /** 위반 유형 (FABRICATED_CONTACT, AMOUNT_LEAK, UNGROUNDED_CLAIM 등) */
+  type: string
+  /** HARD=위험(제거/경고), SOFT=주의(플래그만) */
+  severity: 'HARD' | 'SOFT'
+  /** 사용자에게 보여줄 설명 */
+  message: string
+  /** 하네스가 취한 조치: FLAGGED | STRIPPED | RETRIED */
+  action: string
+}
+
 export interface AnalysisResult {
   todos: TodoItem[]
   receivable: ReceivableItem[]
@@ -203,6 +217,8 @@ export interface AnalysisResult {
   timeline?: TimelinePhase[]
   /** '추가입력 필요' 안내 목록 */
   needsMoreInput?: NeedsMoreInputItem[]
+  /** 할루시네이션 하네스 검증 플래그(없거나 빈 배열이면 검증 통과) */
+  harnessFlags?: HarnessFlag[]
   disclaimer: string
 }
 
