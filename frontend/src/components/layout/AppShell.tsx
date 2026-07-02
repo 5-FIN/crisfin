@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { cn, tokenStore, analysisStore, CRISIS_LABELS } from '@/lib/utils'
 import { authApi } from '@/lib/api'
+import ThemeToggle from './ThemeToggle'
 
 const NAV = [
   { href: '/guide',     icon: BookOpen,        label: '무료 길라잡이' },
@@ -145,6 +146,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <Menu size={20} />
           </button>
           <div className="flex-1" />
+          <ThemeToggle />
           <Link
             href="/"
             className="flex items-center gap-1 text-xs text-[#64748B] hover:text-[#2563EB] transition-colors"
