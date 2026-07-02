@@ -32,6 +32,8 @@ public class SystemPromptProvider {
             "- '반드시', '확실히', '무조건' 등 단정 표현을 쓰지 마세요.\n" +
             "- 모든 receivable 항목에는 근거가 되는 source(제도/기관)를 반드시 채우세요.\n" +
             "- 자격·금액이 불확실하면 금액을 지어내지 말고 추가 확인이 필요하다고 서술하세요.\n" +
+            "- 특정 금융상품(대출/보험/카드/적금 등)의 가입·신청을 권유하지 마세요. " +
+            "대신 상환 유예 가능 여부, 보장 범위, 공공지원·복지제도 확인 등 '정보 확인' 관점으로 안내하세요.\n" +
             "반드시 다음 JSON 형식으로만 응답하세요. 마크다운 없이 순수 JSON만:\n" +
             "{\"todos\":[{\"dayRange\":\"string\",\"action\":\"string\",\"deadline\":\"string\"," +
             "\"priority\":\"HIGH|MED|LOW\",\"reason\":\"string\"}]," +

@@ -8,6 +8,7 @@ import com.finfive.crisfin.domain.analysis.dto.ApplicantProfile;
 import com.finfive.crisfin.domain.analysis.dto.ReinferRequest;
 import com.finfive.crisfin.domain.crisis.CrisisType;
 import com.finfive.crisfin.domain.payment.PaymentService;
+import com.finfive.crisfin.domain.recommendation.FallbackAnalysisProvider;
 import com.finfive.crisfin.domain.recommendation.ResultAssembler;
 import com.finfive.crisfin.domain.recommendation.harness.AnalysisHarness;
 import com.finfive.crisfin.domain.recommendation.harness.HarnessContext;
@@ -57,8 +58,12 @@ public class AnalysisService {
     private final PolicyRetrievalService policyRetrievalService;
     private final ResultAssembler resultAssembler;
     private final AnalysisHarness analysisHarness;
+    private final FallbackAnalysisProvider fallbackAnalysisProvider;
     private final ObjectMapper objectMapper;
     private final PaymentService paymentService;
+
+    /** llmProvider marker for a rule-based fallback result (no LLM was used → no paid use consumed). */
+    private static final String FALLBACK_PROVIDER = "FALLBACK";
 
     /** Number of policy chunks to retrieve for RAG grounding. */
     @Value("${embedding.rag.top-k:5}")
@@ -90,7 +95,10 @@ public class AnalysisService {
         AnalysisResultResponse response = runPipeline(crisisType, req.getSituationDescription(), maskedData,
                 req.getApplicantProfile(), userId);
         // 성공한 분석만 이용권 1회 소모. 동일 트랜잭션이라 소모가 실패하면 분석 저장도 함께 롤백된다.
-        paymentService.consumeUse(userId);
+        // 규칙 기반 폴백(LLM 미가용)은 유료 이용권을 소모하지 않는다.
+        if (!FALLBACK_PROVIDER.equals(response.getLlmProvider())) {
+            paymentService.consumeUse(userId);
+        }
         return response;
     }
 
@@ -132,8 +140,10 @@ public class AnalysisService {
         }
 
         AnalysisResultResponse response = runPipeline(parent.getCrisisType(), situation, maskedData, profile, userId);
-        // 성공한 재분석만 이용권 1회 소모(동일 트랜잭션).
-        paymentService.consumeUse(userId);
+        // 성공한 재분석만 이용권 1회 소모(동일 트랜잭션). 규칙 기반 폴백은 소모하지 않는다.
+        if (!FALLBACK_PROVIDER.equals(response.getLlmProvider())) {
+            paymentService.consumeUse(userId);
+        }
         return response;
     }
 
@@ -155,45 +165,70 @@ public class AnalysisService {
         log.info("[AnalysisService] Sending LLM request for crisisType={}, userId={}", crisisType, userId);
 
         // 할루시네이션 하네스: 생성 → 검증 → (HARD 위반 시) 위반 피드백을 붙여 1회 재생성.
-        LlmResponse llmResponse = null;
+        // LLM 전면 실패 시에는 규칙 기반 폴백 안내로 graceful degrade 한다(에러 대신).
         Map<String, Object> resultMap = null;
-        List<HarnessFlag> flags = List.of();
-        String userMessage = baseUserMessage;
+        List<HarnessFlag> flags;
+        String provider;
+        int tokens;
 
-        for (int attempt = 0; attempt <= 1; attempt++) {
-            llmResponse = llmProviderRouter.complete(
-                    LlmRequest.builder()
-                            .systemPrompt(systemPrompt)
-                            .userMessage(userMessage)
-                            .maxTokens(2048)
-                            .temperature(0.3)
-                            .build()
-            );
+        try {
+            LlmResponse llmResponse = null;
+            String userMessage = baseUserMessage;
+            List<HarnessFlag> detectFlags = List.of();
 
-            JsonNode llmNode = llmResponseValidator.validateAndParse(llmResponse.getContent());
-            resultMap = objectMapper.convertValue(llmNode, new TypeReference<Map<String, Object>>() {});
+            for (int attempt = 0; attempt <= 1; attempt++) {
+                llmResponse = llmProviderRouter.complete(
+                        LlmRequest.builder()
+                                .systemPrompt(systemPrompt)
+                                .userMessage(userMessage)
+                                .maxTokens(2048)
+                                .temperature(0.3)
+                                .build()
+                );
 
-            // Rule engine owns receivable amounts / status / needsMoreInput / summary totals;
-            // timeline is built (urgency-sorted) from the LLM strategy. LLM amounts are discarded.
-            resultAssembler.enrich(resultMap, llmNode, crisisType, applicantProfile);
+                JsonNode llmNode = llmResponseValidator.validateAndParse(llmResponse.getContent());
+                resultMap = objectMapper.convertValue(llmNode, new TypeReference<Map<String, Object>>() {});
 
-            HarnessContext ctx = new HarnessContext(crisisType, needsMoreInputNames(resultMap));
-            flags = analysisHarness.detect(resultMap, ctx);
+                // Rule engine owns receivable amounts / status / needsMoreInput / summary totals;
+                // timeline is built (urgency-sorted) from the LLM strategy. LLM amounts are discarded.
+                resultAssembler.enrich(resultMap, llmNode, crisisType, applicantProfile);
 
-            if (!AnalysisHarness.hasHard(flags) || attempt == 1) {
-                break;
+                HarnessContext ctx = new HarnessContext(crisisType, needsMoreInputNames(resultMap));
+                detectFlags = analysisHarness.detect(resultMap, ctx);
+
+                if (!AnalysisHarness.hasHard(detectFlags) || attempt == 1) {
+                    break;
+                }
+                log.warn("[AnalysisService] 하네스 HARD 위반 감지 — 자가수정 재생성 시도. userId={}, 위반={}건",
+                        userId, detectFlags.stream().filter(f -> f.severity() == Severity.HARD).count());
+                userMessage = baseUserMessage + analysisHarness.buildRepairFeedback(detectFlags);
             }
-            log.warn("[AnalysisService] 하네스 HARD 위반 감지 — 자가수정 재생성 시도. userId={}, 위반={}건",
-                    userId, flags.stream().filter(f -> f.severity() == Severity.HARD).count());
-            userMessage = baseUserMessage + analysisHarness.buildRepairFeedback(flags);
+
+            // 최종 정제: 재생성 후에도 남은 HARD 위반을 제거하고, 정제된 본문으로 타임라인 재생성.
+            // 판사 등 detect 전용(비변형) 검증 결과가 유실되지 않도록 detect 플래그와 병합한다.
+            HarnessContext finalCtx = new HarnessContext(crisisType, needsMoreInputNames(resultMap));
+            List<HarnessFlag> sanitizedFlags = analysisHarness.sanitize(resultMap, finalCtx);
+            flags = analysisHarness.finalizeFlags(detectFlags, sanitizedFlags);
+            resultAssembler.rebuildTimeline(resultMap);
+            provider = llmResponse.getProviderName();
+            tokens = llmResponse.getInputTokens() + llmResponse.getOutputTokens();
+
+        } catch (CrisfinException e) {
+            if (e.getErrorCode() != ErrorCode.LLM_ALL_PROVIDERS_FAILED) {
+                throw e;
+            }
+            // 모든 LLM 프로바이더 실패 → 규칙 기반 체크리스트 + 기관 안내로 degrade(명세 slide 7 Fallback).
+            log.warn("[AnalysisService] 모든 LLM 프로바이더 실패 — 규칙 기반 폴백 안내 제공. userId={}, crisisType={}",
+                    userId, crisisType);
+            resultMap = fallbackAnalysisProvider.build(crisisType);
+            resultAssembler.enrich(resultMap, objectMapper.valueToTree(resultMap), crisisType, applicantProfile);
+            flags = List.of(new HarnessFlag("output", "LLM_UNAVAILABLE", Severity.SOFT,
+                    "AI 분석 서버가 일시적으로 불가하여 규칙 기반 기본 안내를 제공합니다. 세부 자격·금액은 각 기관에 직접 확인하세요.",
+                    "FLAGGED"));
+            provider = FALLBACK_PROVIDER;
+            tokens = 0;
         }
 
-        // 최종 정제: 재생성 후에도 남은 HARD 위반을 제거하고, 정제된 본문으로 타임라인 재생성.
-        // 판사 등 detect 전용(비변형) 검증 결과가 유실되지 않도록 detect 플래그와 병합한다.
-        HarnessContext finalCtx = new HarnessContext(crisisType, needsMoreInputNames(resultMap));
-        List<HarnessFlag> sanitizedFlags = analysisHarness.sanitize(resultMap, finalCtx);
-        flags = analysisHarness.finalizeFlags(flags, sanitizedFlags);
-        resultAssembler.rebuildTimeline(resultMap);
         resultMap.put("harnessFlags", objectMapper.convertValue(flags, List.class));
 
         AnalysisResult saved = analysisResultRepository.save(
@@ -204,8 +239,8 @@ public class AnalysisService {
                         .inputMyDataJson(maskedData)
                         .applicantProfileJson(toProfileMap(applicantProfile))
                         .resultJson(resultMap)
-                        .llmProvider(llmResponse.getProviderName())
-                        .tokensUsed(llmResponse.getInputTokens() + llmResponse.getOutputTokens())
+                        .llmProvider(provider)
+                        .tokensUsed(tokens)
                         .build()
         );
 
