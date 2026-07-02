@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, CreditCard, Gift, CheckSquare,
-  History, Menu, LogOut, ChevronRight, BookOpen, Settings,
+  History, Menu, LogOut, ChevronRight, BookOpen, Settings, Star,
 } from 'lucide-react'
 import { cn, tokenStore, analysisStore, CRISIS_LABELS } from '@/lib/utils'
 import { authApi } from '@/lib/api'
@@ -15,6 +15,7 @@ const NAV = [
   { href: '/dashboard', icon: LayoutDashboard, label: '대시보드' },
   { href: '/payments',  icon: CreditCard,      label: '납부 관리', badge: '!' },
   { href: '/benefits',  icon: Gift,             label: '혜택 매처' },
+  { href: '/favorites', icon: Star,             label: '즐겨찾기' },
   { href: '/tasks',     icon: CheckSquare,      label: '액션 체크리스트' },
   { href: '/history',   icon: History,          label: '히스토리' },
   { href: '/settings',  icon: Settings,         label: '설정' },

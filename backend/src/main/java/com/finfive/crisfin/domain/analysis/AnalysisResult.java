@@ -58,6 +58,10 @@ public class AnalysisResult {
     @Column(length = 100)
     private String llmProvider;
 
+    /** Unguessable public share token; {@code null} when the result is not shared. */
+    @Column(name = "share_token", length = 64)
+    private String shareToken;
+
     @Column(nullable = false)
     @Builder.Default
     private int tokensUsed = 0;
@@ -65,4 +69,14 @@ public class AnalysisResult {
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    /** Assigns a public share token so the result can be viewed read-only by link. */
+    public void assignShareToken(String token) {
+        this.shareToken = token;
+    }
+
+    /** Revokes the public share link by clearing the token. */
+    public void revokeShare() {
+        this.shareToken = null;
+    }
 }

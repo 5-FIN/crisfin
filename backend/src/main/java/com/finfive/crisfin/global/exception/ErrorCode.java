@@ -32,6 +32,7 @@ public enum ErrorCode {
     // 404 – Not found
     ANALYSIS_NOT_FOUND(404, "ANALYSIS_NOT_FOUND", "요청한 분석 결과를 찾을 수 없습니다."),
     PAYMENT_ORDER_NOT_FOUND(404, "PAYMENT_ORDER_NOT_FOUND", "결제 주문을 찾을 수 없습니다."),
+    WELFARE_NOT_FOUND(404, "WELFARE_NOT_FOUND", "요청한 복지 제도를 찾을 수 없습니다."),
 
     // 500 – Internal
     LLM_RESPONSE_PARSE_ERROR(500, "LLM_RESPONSE_PARSE_ERROR", "LLM 응답을 파싱하는 데 실패했습니다."),

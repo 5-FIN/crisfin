@@ -215,6 +215,11 @@ export interface AnalysisResultResponse {
   createdAt: string
 }
 
+/** 분석결과 공유 링크 응답 */
+export interface ShareLinkResponse {
+  shareToken: string
+}
+
 /* ────────────────────────────────────────────────
    복지 (Welfare)
 ──────────────────────────────────────────────── */

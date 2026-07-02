@@ -4,7 +4,7 @@ import type {
   AuthResponse, SignupRequest, LoginRequest,
   CrisisTypeResponse, GuideResponse,
   PersonaType, CrisisType,
-  AnalysisRequest, AnalysisResultResponse, ReinferRequest,
+  AnalysisRequest, AnalysisResultResponse, ReinferRequest, ShareLinkResponse,
   WelfareBenefitResponse,
   CheckoutResponse, EntitlementResponse, PlanResponse,
   UserResponse, UpdateProfileRequest,
@@ -137,6 +137,14 @@ export const analysisApi = {
     request<AnalysisResultResponse>(`/api/v1/analysis/${id}/reinfer`, {
       method: 'POST', body: JSON.stringify(data),
     }, { autoAuthRedirect: false }),
+  // 공유 링크 생성/해제 (본인 소유만)
+  share: (id: number) =>
+    request<ShareLinkResponse>(`/api/v1/analysis/${id}/share`, { method: 'POST' }),
+  revokeShare: (id: number) =>
+    request<void>(`/api/v1/analysis/${id}/share`, { method: 'DELETE' }),
+  // 공유된 결과 공개 조회 (비로그인 가능 — 토큰 기반). 인증 헤더/리다이렉트 없이 raw fetch.
+  getShared: (token: string) =>
+    rawFetch<AnalysisResultResponse>(`/api/v1/analysis/shared/${token}`),
 }
 
 /* ── Payments / 이용권 ── */
@@ -170,4 +178,11 @@ export const welfareApi = {
   },
   get: (id: number) =>
     request<WelfareBenefitResponse>(`/api/v1/welfare/benefits/${id}`),
+  // 즐겨찾기 (로그인 필요)
+  favorites: () =>
+    request<WelfareBenefitResponse[]>('/api/v1/welfare/favorites'),
+  addFavorite: (id: number) =>
+    request<void>(`/api/v1/welfare/favorites/${id}`, { method: 'POST' }),
+  removeFavorite: (id: number) =>
+    request<void>(`/api/v1/welfare/favorites/${id}`, { method: 'DELETE' }),
 }
