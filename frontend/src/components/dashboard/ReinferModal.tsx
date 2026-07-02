@@ -70,11 +70,11 @@ export default function ReinferModal({ analysis, onClose, onUpdated }: Props) {
       onClose()
     } catch (err) {
       const status = (err as Error & { status?: number }).status
+      // 페이지 이동 경로(login/unlock)는 컴포넌트가 언마운트되므로 loading 복원 불필요.
       if (status === 401) { router.push('/login'); return }
       if (status === 402) { router.push('/unlock'); return }
       setError(err instanceof Error ? err.message : '재분석 중 오류가 발생했습니다.')
-    } finally {
-      setLoading(false)
+      setLoading(false) // 모달이 유지되는 오류 표시 경로에서만 버튼 재활성화
     }
   }
 

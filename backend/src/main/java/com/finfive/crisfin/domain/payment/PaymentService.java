@@ -91,9 +91,13 @@ public class PaymentService {
             throw new CrisfinException(ErrorCode.FORBIDDEN, "본인의 결제 주문이 아닙니다.");
         }
 
-        if (!order.isPaid()) {
-            order.markPaid();
+        // 멱등성: 이미 정산된 주문을 재확인해도 이용권을 재충전하지 않는다.
+        // (같은 orderUid로 confirm을 반복 호출해 사용 횟수/만료를 리필하는 악용 방지)
+        if (order.isPaid()) {
+            Entitlement existing = entitlementRepository.findByUserId(userId).orElse(null);
+            return EntitlementResponse.from(existing);
         }
+        order.markPaid();
 
         PaymentPlan p = PaymentPlan.fromCode(order.getPlan());
         LocalDateTime expiresAt = LocalDateTime.now().plusDays(p.getDurationDays());
