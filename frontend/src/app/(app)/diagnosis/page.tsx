@@ -6,6 +6,7 @@ import { CheckCircle, Loader2 } from 'lucide-react'
 import { analysisApi } from '@/lib/api'
 import { analysisStore, pendingAnalysisStore, buildSituationDescription, jobToPersona, CRISIS_KEY_MAP } from '@/lib/utils'
 import MyDataSelector from '@/components/mydata/MyDataSelector'
+import PaymentModal from '@/components/payment/PaymentModal'
 import type { AnalysisRequest, ApplicantProfile, CrisisType, PersonaType } from '@/lib/types'
 
 type Step = 1 | 2 | 3 | 4 | 5
@@ -63,6 +64,8 @@ export default function DiagnosisPage() {
   const [detail, setDetail] = useState('')
   const [loadingMsg, setLoadingMsg] = useState('')
   const [error, setError] = useState('')
+  // 유료 게이팅(402) 시 페이지 이동 대신 결제 모달을 띄우고, 결제 후 이 요청을 제자리에서 재실행한다.
+  const [payReq, setPayReq] = useState<AnalysisRequest | null>(null)
 
   const pick = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
   const persona = jobToPersona(form.job) as PersonaType
@@ -101,10 +104,8 @@ export default function DiagnosisPage() {
   }
 
   async function runAnalysis() {
-    setStep(5)
     setError('')
     // 위기유형·상황요약·신청자 프로필을 조립해 분석 요청(req)을 만든다.
-    // catch에서 결제/로그인 게이팅 시 req를 보관하므로 try 밖에서 선언한다.
     const crisisType = CRISIS_KEY_MAP[crisis] as CrisisType
     // 소득은 마이데이터에서 파생(원 → 만원 표기)해 상황 요약 텍스트에 반영.
     const monthlyIncome = num(filteredMyData.monthlyIncome)
@@ -125,6 +126,13 @@ export default function DiagnosisPage() {
       ...(Object.keys(applicantProfile).length > 0 ? { applicantProfile } : {}),
     }
 
+    submit(req)
+  }
+
+  /** 분석 요청을 실행한다. 402(미결제)면 결제 모달을 열어 제자리에서 이어가고, 401은 로그인으로. */
+  async function submit(req: AnalysisRequest) {
+    setStep(5)
+    setError('')
     try {
       setLoadingMsg('AI가 상황을 분석하는 중...')
       const result = await analysisApi.recommend(req)
@@ -135,10 +143,17 @@ export default function DiagnosisPage() {
       router.push('/dashboard')
     } catch (err) {
       const status = (err as { status?: number }).status
-      // 유료: 미로그인 → 로그인, 미결제 → 결제(페이월). 요청을 보관해 결제/로그인 후 즉시 재실행.
-      if (status === 401 || status === 402) {
+      // 요청을 보관해 결제/로그인 후 즉시 재실행할 수 있게 한다.
+      if (status === 401) {
         pendingAnalysisStore.save(req)
-        router.push(status === 401 ? '/login' : '/unlock')
+        router.push('/login')
+        return
+      }
+      if (status === 402) {
+        // 미결제 → 결제 모달을 띄우고 입력 화면(step 4)으로 복귀. 결제하면 제자리에서 이어 실행.
+        pendingAnalysisStore.save(req)
+        setPayReq(req)
+        setStep(4)
         return
       }
       setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
@@ -282,6 +297,14 @@ export default function DiagnosisPage() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* 결제 모달 (미결제 게이팅 시) — 결제하면 방금 입력한 분석을 제자리에서 이어 실행 */}
+      {payReq && (
+        <PaymentModal
+          onPaid={() => { const r = payReq; setPayReq(null); submit(r) }}
+          onClose={() => setPayReq(null)}
+        />
       )}
 
       {/* Step 5: AI 분석 중 */}
