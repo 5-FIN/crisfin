@@ -173,20 +173,16 @@ export default function DashboardPage() {
             <div className="text-2xl font-bold tabular-nums" style={{ color }}>{value}</div>
             <div className="text-xs text-[#94A3B8] mt-1">{sub}</div>
 
-            {/* hover 시 상위 항목 미리보기 펼침 */}
+            {/* 상위 항목 미리보기 — 항상 표시 */}
             {preview.length > 0 && (
-              <div className="grid grid-rows-[0fr] group-hover:grid-rows-[1fr] transition-all duration-300 ease-out">
-                <div className="overflow-hidden">
-                  <ul className="mt-3 pt-3 border-t border-[#F1F5F9] space-y-1.5">
-                    {preview.map((p, i) => (
-                      <li key={i} className="flex items-start gap-1.5 text-xs text-[#475569] leading-snug">
-                        <span className="mt-1 w-1 h-1 rounded-full flex-shrink-0" style={{ background: color }} />
-                        <span className="line-clamp-1">{p}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
+              <ul className="mt-3 pt-3 border-t border-[#F1F5F9] space-y-1.5">
+                {preview.map((p, i) => (
+                  <li key={i} className="flex items-start gap-1.5 text-xs text-[#475569] leading-snug">
+                    <span className="mt-1 w-1 h-1 rounded-full flex-shrink-0" style={{ background: color }} />
+                    <span className="line-clamp-1">{p}</span>
+                  </li>
+                ))}
+              </ul>
             )}
 
             <div className="flex items-center gap-1 mt-3 text-xs font-medium group-hover:gap-2 transition-all"
@@ -210,7 +206,8 @@ export default function DashboardPage() {
             {todos.slice(0, 3).map((todo, i) => {
               const badge = priorityBadge(todo.priority)
               return (
-                <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-[#F8FAFC]">
+                <Link key={i} href="/tasks"
+                  className="flex items-start gap-3 p-3 rounded-xl bg-[#F8FAFC] hover:bg-[#F1F5F9] transition-colors">
                   <span className="text-xs font-medium px-2 py-1 rounded-full flex-shrink-0"
                         style={{ background: badge.bg, color: badge.color }}>
                     {badge.label}
@@ -219,7 +216,7 @@ export default function DashboardPage() {
                     <div className="text-sm font-medium text-[#1E293B] truncate">{todo.action}</div>
                     <div className="text-xs text-[#94A3B8]">{todo.dayRange} · {todo.deadline}</div>
                   </div>
-                </div>
+                </Link>
               )
             })}
           </div>
@@ -237,7 +234,8 @@ export default function DashboardPage() {
             {receivable.slice(0, 3).map((item, i) => {
               const needsInput = item.status === 'NEEDS_MORE_INPUT' || item.estimatedMin == null
               return (
-                <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-[#F8FAFC]">
+                <Link key={i} href="/benefits"
+                  className="flex items-center justify-between p-3 rounded-xl bg-[#F8FAFC] hover:bg-[#F1F5F9] transition-colors">
                   <div className="min-w-0 mr-3">
                     <div className="text-sm font-medium text-[#1E293B] truncate">{item.name}</div>
                     <div className="text-xs text-[#94A3B8]">{item.source}</div>
@@ -249,7 +247,7 @@ export default function DashboardPage() {
                       {fmt(item.estimatedMin as number)}+
                     </div>
                   )}
-                </div>
+                </Link>
               )
             })}
           </div>
