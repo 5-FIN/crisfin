@@ -234,6 +234,8 @@ export interface WelfareBenefitResponse {
   lastSyncedAt: string | null
   ctpvNm?: string | null
   sggNm?: string | null
+  /** 상세조회 본문(라벨링된 개요·지원대상·선정기준·지원내용·신청방법). 상세 응답에만 존재 */
+  detailContent?: string | null
 }
 
 /* ────────────────────────────────────────────────

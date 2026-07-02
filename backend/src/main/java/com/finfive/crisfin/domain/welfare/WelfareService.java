@@ -51,6 +51,6 @@ public class WelfareService {
                 .orElseThrow(() -> new CrisfinException(ErrorCode.WELFARE_API_UNAVAILABLE,
                         "복지 혜택 정보를 찾을 수 없습니다. id=" + id));
 
-        return WelfareBenefitResponse.from(benefit);
+        return WelfareBenefitResponse.fromDetail(benefit);
     }
 }

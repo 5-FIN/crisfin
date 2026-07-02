@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { ExternalLink, ChevronDown, ChevronUp } from 'lucide-react'
 import { analysisStore, fmt, priorityBadge } from '@/lib/utils'
 import { welfareApi, usersApi } from '@/lib/api'
@@ -264,12 +265,18 @@ export default function BenefitsPage() {
                   {isOpen && (
                     <div className="px-5 pb-5 border-t border-[#F1F5F9] pt-4 space-y-2">
                       <p className="text-sm text-[#475569]">{item.summary}</p>
-                      {item.applyUrl && (
-                        <a href={item.applyUrl} target="_blank" rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-sm text-[#2563EB] hover:underline">
-                          신청 바로가기 <ExternalLink size={13} />
-                        </a>
-                      )}
+                      <div className="flex items-center gap-4">
+                        <Link href={`/welfare/${item.id}`}
+                          className="inline-flex items-center gap-1.5 text-sm text-[#2563EB] hover:underline font-medium">
+                          상세 보기 →
+                        </Link>
+                        {item.applyUrl && (
+                          <a href={item.applyUrl} target="_blank" rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-sm text-[#64748B] hover:text-[#2563EB]">
+                            신청 바로가기 <ExternalLink size={13} />
+                          </a>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
