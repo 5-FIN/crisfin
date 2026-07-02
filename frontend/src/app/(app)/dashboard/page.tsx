@@ -9,6 +9,7 @@ import { printAnalysisReport } from '@/lib/pdfReport'
 import NoAnalysisEmptyState from '@/components/common/NoAnalysisEmptyState'
 import ReinferModal from '@/components/dashboard/ReinferModal'
 import HarnessNotice from '@/components/dashboard/HarnessNotice'
+import Citations from '@/components/dashboard/Citations'
 import type { AnalysisResultResponse } from '@/lib/types'
 
 export default function DashboardPage() {
@@ -229,6 +230,9 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* 분석 근거(RAG) */}
+      <Citations citations={result.citations} />
 
       {/* 면책 조항 */}
       <p className="mt-6 text-xs text-[#94A3B8] text-center">{result.disclaimer}</p>

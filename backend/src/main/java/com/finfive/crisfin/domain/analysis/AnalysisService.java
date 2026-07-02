@@ -159,10 +159,19 @@ public class AnalysisService {
                                                Long userId) {
         promptInjectionDetector.validate(situationDescription);
 
-        String systemPrompt = systemPromptProvider.getSystemPrompt(crisisType);
-        String baseUserMessage = buildUserMessage(crisisType, situationDescription, maskedData, applicantProfile);
+        // RAG 근거를 한 번만 검색해 ① 프롬프트 그라운딩 ② 응답 citations(근거 노출)
+        // ③ judge의 근거 대조에 공유한다.
+        List<RetrievedPolicy> policies =
+                policyRetrievalService.retrieve(crisisType, situationDescription, ragTopK);
+        String ragBlock = formatRagBlock(policies);
+        List<Map<String, Object>> citations = buildCitations(policies);
 
-        log.info("[AnalysisService] Sending LLM request for crisisType={}, userId={}", crisisType, userId);
+        String systemPrompt = systemPromptProvider.getSystemPrompt(crisisType);
+        String baseUserMessage =
+                buildUserMessage(crisisType, situationDescription, maskedData, applicantProfile, ragBlock);
+
+        log.info("[AnalysisService] Sending LLM request for crisisType={}, userId={}, ragChunks={}",
+                crisisType, userId, policies.size());
 
         // 할루시네이션 하네스: 생성 → 검증 → (HARD 위반 시) 위반 피드백을 붙여 1회 재생성.
         // LLM 전면 실패 시에는 규칙 기반 폴백 안내로 graceful degrade 한다(에러 대신).
@@ -193,7 +202,7 @@ public class AnalysisService {
                 // timeline is built (urgency-sorted) from the LLM strategy. LLM amounts are discarded.
                 resultAssembler.enrich(resultMap, llmNode, crisisType, applicantProfile);
 
-                HarnessContext ctx = new HarnessContext(crisisType, needsMoreInputNames(resultMap));
+                HarnessContext ctx = new HarnessContext(crisisType, needsMoreInputNames(resultMap), ragBlock);
                 detectFlags = analysisHarness.detect(resultMap, ctx);
 
                 if (!AnalysisHarness.hasHard(detectFlags) || attempt == 1) {
@@ -206,7 +215,7 @@ public class AnalysisService {
 
             // 최종 정제: 재생성 후에도 남은 HARD 위반을 제거하고, 정제된 본문으로 타임라인 재생성.
             // 판사 등 detect 전용(비변형) 검증 결과가 유실되지 않도록 detect 플래그와 병합한다.
-            HarnessContext finalCtx = new HarnessContext(crisisType, needsMoreInputNames(resultMap));
+            HarnessContext finalCtx = new HarnessContext(crisisType, needsMoreInputNames(resultMap), ragBlock);
             List<HarnessFlag> sanitizedFlags = analysisHarness.sanitize(resultMap, finalCtx);
             flags = analysisHarness.finalizeFlags(detectFlags, sanitizedFlags);
             resultAssembler.rebuildTimeline(resultMap);
@@ -230,6 +239,7 @@ public class AnalysisService {
         }
 
         resultMap.put("harnessFlags", objectMapper.convertValue(flags, List.class));
+        resultMap.put("citations", citations);
 
         AnalysisResult saved = analysisResultRepository.save(
                 AnalysisResult.builder()
@@ -395,7 +405,8 @@ public class AnalysisService {
     private String buildUserMessage(CrisisType crisisType,
                                     String situationDescription,
                                     Map<String, Object> maskedData,
-                                    ApplicantProfile applicantProfile) {
+                                    ApplicantProfile applicantProfile,
+                                    String ragBlock) {
         String myDataJson;
         try {
             myDataJson = objectMapper.writeValueAsString(maskedData);
@@ -418,9 +429,8 @@ public class AnalysisService {
         }
 
         // Hybrid RAG: append retrieved policy context as grounding only. When RAG is
-        // disabled or finds nothing, the block is omitted and the message is unchanged.
-        String ragBlock = buildRagBlock(crisisType, situationDescription);
-        if (!ragBlock.isEmpty()) {
+        // disabled or finds nothing, the block is empty and the message is unchanged.
+        if (ragBlock != null && !ragBlock.isEmpty()) {
             sb.append("\n\n").append(ragBlock);
         }
         return sb.toString();
@@ -448,9 +458,7 @@ public class AnalysisService {
      *
      * @return the formatted block, or an empty string when there is nothing to add
      */
-    private String buildRagBlock(CrisisType crisisType, String situationDescription) {
-        List<RetrievedPolicy> policies =
-                policyRetrievalService.retrieve(crisisType, situationDescription, ragTopK);
+    private String formatRagBlock(List<RetrievedPolicy> policies) {
         if (policies.isEmpty()) {
             return "";
         }
@@ -463,6 +471,26 @@ public class AnalysisService {
               .append(p.content().replaceAll("\\s+", " ").trim()).append('\n');
         }
         return sb.toString().trim();
+    }
+
+    /**
+     * Converts the retrieved RAG policies into user-facing citations attached to the result,
+     * so the UI can show the official sources this analysis was grounded in (근거 기반 투명성).
+     */
+    private List<Map<String, Object>> buildCitations(List<RetrievedPolicy> policies) {
+        List<Map<String, Object>> citations = new java.util.ArrayList<>();
+        for (RetrievedPolicy p : policies) {
+            String snippet = p.content().replaceAll("\\s+", " ").trim();
+            if (snippet.length() > 120) {
+                snippet = snippet.substring(0, 120) + "…";
+            }
+            Map<String, Object> c = new java.util.LinkedHashMap<>();
+            c.put("sourceType", p.sourceType());   // WELFARE | GUIDE
+            c.put("sourceRef", p.sourceRef());      // row id within the source
+            c.put("snippet", snippet);
+            citations.add(c);
+        }
+        return citations;
     }
 
     private AnalysisResultResponse toResponse(AnalysisResult entity, JsonNode resultNode) {
