@@ -29,13 +29,15 @@ public class WelfareService {
      * @return page of {@link WelfareBenefitResponse}
      */
     public Page<WelfareBenefitResponse> getWelfareBenefits(
-            String ctpvNm, String sggNm, String crisisType, Pageable pageable) {
+            String ctpvNm, String sggNm, String crisisType, String keyword, String sortBy, Pageable pageable) {
 
         String ctpv = StringUtils.hasText(ctpvNm) ? ctpvNm.trim() : null;
         String sgg = StringUtils.hasText(sggNm) ? sggNm.trim() : null;
         String tag = StringUtils.hasText(crisisType) ? crisisType.trim().toUpperCase() : null;
+        String kw = StringUtils.hasText(keyword) ? keyword.trim() : null;
+        String sort = "name".equalsIgnoreCase(sortBy) ? "name" : "recent";
 
-        return welfareBenefitRepository.search(ctpv, sgg, tag, pageable)
+        return welfareBenefitRepository.search(ctpv, sgg, tag, kw, sort, pageable)
                 .map(WelfareBenefitResponse::from);
     }
 

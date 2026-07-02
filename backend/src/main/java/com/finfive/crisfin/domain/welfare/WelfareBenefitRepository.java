@@ -50,15 +50,26 @@ public interface WelfareBenefitRepository extends JpaRepository<WelfareBenefit, 
         "SELECT * FROM welfare_benefits WHERE is_active = true " +
         "AND (CAST(:ctpvNm AS TEXT) IS NULL OR ctpv_nm = CAST(:ctpvNm AS TEXT)) " +
         "AND (CAST(:sggNm AS TEXT) IS NULL OR sgg_nm = CAST(:sggNm AS TEXT) OR sgg_nm IS NULL) " +
-        "AND (CAST(:tag AS TEXT) IS NULL OR crisis_tags @> jsonb_build_array(CAST(:tag AS TEXT)))",
+        "AND (CAST(:tag AS TEXT) IS NULL OR crisis_tags @> jsonb_build_array(CAST(:tag AS TEXT))) " +
+        "AND (CAST(:keyword AS TEXT) IS NULL OR service_name ILIKE CONCAT('%', CAST(:keyword AS TEXT), '%') " +
+        "     OR summary ILIKE CONCAT('%', CAST(:keyword AS TEXT), '%')) " +
+        // 네이티브 쿼리는 Pageable의 Sort가 적용되지 않아 ORDER BY를 직접 명시한다.
+        // sortBy='name'이면 서비스명 가나다 오름차순. DB 콜레이션(en_US.utf8)은 한글을
+        // 가나다순으로 정렬하지 못하므로 COLLATE "C"(유니코드 코드포인트순=한글 가나다순)를
+        // 쓰고, 일부 데이터의 앞뒤 공백을 TRIM으로 제거해 정렬 흔들림을 방지한다.
+        "ORDER BY CASE WHEN CAST(:sortBy AS TEXT) = 'name' THEN TRIM(service_name) END COLLATE \"C\" ASC, last_synced_at DESC",
         countQuery =
         "SELECT COUNT(*) FROM welfare_benefits WHERE is_active = true " +
         "AND (CAST(:ctpvNm AS TEXT) IS NULL OR ctpv_nm = CAST(:ctpvNm AS TEXT)) " +
         "AND (CAST(:sggNm AS TEXT) IS NULL OR sgg_nm = CAST(:sggNm AS TEXT) OR sgg_nm IS NULL) " +
-        "AND (CAST(:tag AS TEXT) IS NULL OR crisis_tags @> jsonb_build_array(CAST(:tag AS TEXT)))",
+        "AND (CAST(:tag AS TEXT) IS NULL OR crisis_tags @> jsonb_build_array(CAST(:tag AS TEXT))) " +
+        "AND (CAST(:keyword AS TEXT) IS NULL OR service_name ILIKE CONCAT('%', CAST(:keyword AS TEXT), '%') " +
+        "     OR summary ILIKE CONCAT('%', CAST(:keyword AS TEXT), '%'))",
         nativeQuery = true)
     Page<WelfareBenefit> search(@Param("ctpvNm") String ctpvNm,
                                 @Param("sggNm") String sggNm,
                                 @Param("tag") String tag,
+                                @Param("keyword") String keyword,
+                                @Param("sortBy") String sortBy,
                                 Pageable pageable);
 }
