@@ -9,15 +9,17 @@ import type { AnalysisResultResponse, PageResponse } from '@/lib/types'
 export default function HistoryPage() {
   const router = useRouter()
   const [data, setData] = useState<PageResponse<AnalysisResultResponse> | null>(null)
+  const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    analysisApi.history()
+    setLoading(true)
+    analysisApi.history(page)
       .then(setData)
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [])
+  }, [page])
 
   function handleSelect(item: AnalysisResultResponse) {
     analysisStore.save(item)
@@ -102,9 +104,23 @@ export default function HistoryPage() {
       </div>
 
       {data.totalPages > 1 && (
-        <p className="text-center text-xs text-[#94A3B8] mt-4">
-          {data.number + 1} / {data.totalPages} 페이지
-        </p>
+        <div className="flex items-center justify-center gap-4 mt-6">
+          <button
+            onClick={() => setPage(p => Math.max(0, p - 1))}
+            disabled={data.number === 0}
+            className="px-3 py-1.5 text-sm rounded-lg border border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            이전
+          </button>
+          <span className="text-xs text-[#94A3B8]">{data.number + 1} / {data.totalPages}</span>
+          <button
+            onClick={() => setPage(p => Math.min(data.totalPages - 1, p + 1))}
+            disabled={data.number >= data.totalPages - 1}
+            className="px-3 py-1.5 text-sm rounded-lg border border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            다음
+          </button>
+        </div>
       )}
     </div>
   )

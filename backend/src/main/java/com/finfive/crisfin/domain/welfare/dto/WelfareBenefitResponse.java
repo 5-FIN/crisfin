@@ -26,8 +26,22 @@ public class WelfareBenefitResponse {
     private final String applyMethod;
     private final boolean isActive;
     private final LocalDateTime lastSyncedAt;
+    /** 상세조회 본문(개요·지원대상·선정기준·지원내용·신청방법). 목록에선 null, 상세에서만 채운다. */
+    private final String detailContent;
 
+    /** 목록용 매핑 — 상세 본문(detailContent)은 제외해 응답을 가볍게 유지한다. */
     public static WelfareBenefitResponse from(WelfareBenefit benefit) {
+        return baseBuilder(benefit).build();
+    }
+
+    /** 상세용 매핑 — 상세 본문까지 포함한다. */
+    public static WelfareBenefitResponse fromDetail(WelfareBenefit benefit) {
+        return baseBuilder(benefit)
+                .detailContent(benefit.getDetailContent())
+                .build();
+    }
+
+    private static WelfareBenefitResponseBuilder baseBuilder(WelfareBenefit benefit) {
         return WelfareBenefitResponse.builder()
                 .id(benefit.getId())
                 .serviceName(benefit.getServiceName())
@@ -43,7 +57,6 @@ public class WelfareBenefitResponse {
                 .selectionCriteria(benefit.getSelectionCriteria())
                 .applyMethod(benefit.getApplyMethod())
                 .isActive(benefit.isActive())
-                .lastSyncedAt(benefit.getLastSyncedAt())
-                .build();
+                .lastSyncedAt(benefit.getLastSyncedAt());
     }
 }
