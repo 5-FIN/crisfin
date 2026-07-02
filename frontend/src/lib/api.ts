@@ -165,11 +165,13 @@ export const paymentApi = {
 
 /* ── Welfare ── */
 export const welfareApi = {
-  list: (params?: { crisisType?: CrisisType; ctpvNm?: string; sggNm?: string; page?: number; size?: number }) => {
+  list: (params?: { crisisType?: CrisisType; ctpvNm?: string; sggNm?: string; keyword?: string; sort?: string; page?: number; size?: number }) => {
     const qs = new URLSearchParams()
     if (params?.crisisType) qs.set('crisisType', params.crisisType)
     if (params?.ctpvNm) qs.set('ctpvNm', params.ctpvNm)
     if (params?.sggNm) qs.set('sggNm', params.sggNm)
+    if (params?.keyword) qs.set('keyword', params.keyword)
+    if (params?.sort) qs.set('sort', params.sort)
     if (params?.page != null) qs.set('page', String(params.page))
     if (params?.size != null) qs.set('size', String(params.size))
     return request<PageResponse<WelfareBenefitResponse>>(
