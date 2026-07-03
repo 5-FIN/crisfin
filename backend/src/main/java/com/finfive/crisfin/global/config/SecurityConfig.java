@@ -2,7 +2,6 @@ package com.finfive.crisfin.global.config;
 
 import com.finfive.crisfin.global.filter.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -19,7 +18,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -41,9 +39,6 @@ public class SecurityConfig {
 
     private final JwtProvider jwtProvider;
     private final UserDetailsService userDetailsService;
-
-    @Value("${cors.allowed-origins:*}")
-    private String allowedOriginsRaw;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -87,20 +82,13 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         // 프론트(Next.js)가 /api/*를 서버사이드로 프록시하지만, 프록시는 브라우저의 Origin 헤더를
-        // 그대로 백엔드에 전달한다. 따라서 배포 IP·도메인·localhost·127.0.0.1 등 어떤 Origin으로
-        // 접속하든 매칭되도록 allowedOriginPatterns를 사용한다.
+        // 그대로 백엔드에 전달한다. 배포 IP·도메인·포트가 바뀔 때마다 허용 목록을 정확히 맞추는 것은
+        // 계속 어긋나 CORS 거절(Invalid CORS request)을 유발했다.
+        // 백엔드는 docker 내부 네트워크 전용(호스트로 8080 미노출)이라 CORS는 실질적 보안 경계가
+        // 아니므로, 앱 계층에서 모든 Origin을 반사(allow-all)로 고정한다.
         // (allowCredentials=true 에서는 setAllowedOrigins("*")가 금지되므로, 실제 Origin을 그대로
-        //  반사해 주는 allowedOriginPatterns를 써야 한다.)
-        // 공백·빈 값·후행 슬래시를 정규화한다. (예: "https://a.com, https://b.com/" -> [...])
-        List<String> allowedOriginPatterns = Arrays.stream(allowedOriginsRaw.split(","))
-                .map(String::trim)
-                .filter(origin -> !origin.isEmpty())
-                .map(origin -> origin.endsWith("/")
-                        ? origin.substring(0, origin.length() - 1)
-                        : origin)
-                .toList();
-        config.setAllowedOriginPatterns(
-                allowedOriginPatterns.isEmpty() ? List.of("*") : allowedOriginPatterns);
+        //  반사해 주는 allowedOriginPatterns("*")를 써야 한다.)
+        config.setAllowedOriginPatterns(List.of("*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("Authorization"));
