@@ -3,10 +3,14 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { authApi } from '@/lib/api'
+import { Zap } from 'lucide-react'
+import { authApi, paymentApi } from '@/lib/api'
 import { tokenStore } from '@/lib/utils'
 import { resumePendingAnalysis } from '@/lib/resumeAnalysis'
 import BrandMark from '@/components/BrandMark'
+
+/** 데모용 체험 계정 — 원클릭으로 로그인을 스킵한다. */
+const DEMO = { email: 'demo@crisfin.app', password: 'DemoPass1!', nickname: '데모' }
 
 export default function LoginPage() {
   const router = useRouter()
@@ -27,6 +31,35 @@ export default function LoginPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : '로그인 중 오류가 발생했습니다.')
     } finally {
+      setLoading(false)
+    }
+  }
+
+  /** 데모 계정으로 바로 로그인(없으면 생성) + 이용권 자동 발급 → 진단으로. 로그인 입력을 스킵한다. */
+  async function demoStart() {
+    setError('')
+    setLoading(true)
+    try {
+      let res
+      try {
+        res = await authApi.login({ email: DEMO.email, password: DEMO.password })
+      } catch {
+        // 계정이 아직 없으면 생성(이미 있으면 dup → 다시 로그인)
+        try { res = await authApi.signup(DEMO) }
+        catch { res = await authApi.login({ email: DEMO.email, password: DEMO.password }) }
+      }
+      tokenStore.set(res.accessToken, res.refreshToken)
+      // 이용권이 없으면 데모용 무제한 이용권을 자동 발급(결제 스킵)
+      try {
+        const ent = await paymentApi.entitlement()
+        if (!ent.active) {
+          const { orderUid } = await paymentApi.checkout('UNLIMITED_30D')
+          await paymentApi.confirm(orderUid)
+        }
+      } catch { /* 이용권 발급 실패해도 로그인은 진행 */ }
+      router.push('/diagnosis')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '데모 시작 중 오류가 발생했습니다.')
       setLoading(false)
     }
   }
@@ -81,6 +114,17 @@ export default function LoginPage() {
             </button>
           </form>
 
+          {/* 데모 바로 시작 — 로그인 스킵 */}
+          <div className="mt-4 pt-4 border-t border-[#E2E8F0]">
+            <button
+              onClick={demoStart}
+              disabled={loading}
+              className="w-full py-2.5 bg-[#F1F5F9] text-[#475569] font-semibold rounded-lg hover:bg-[#E2E8F0] disabled:opacity-60 disabled:cursor-not-allowed transition-colors text-sm flex items-center justify-center gap-1.5"
+            >
+              <Zap size={15} className="text-[#2563EB]" /> 데모로 바로 시작 (로그인 스킵)
+            </button>
+            <p className="text-center text-[11px] text-[#94A3B8] mt-2">체험 계정 즉시 로그인 · 이용권 자동 적용</p>
+          </div>
         </div>
 
         <p className="text-center text-sm text-[#64748B] mt-4">
