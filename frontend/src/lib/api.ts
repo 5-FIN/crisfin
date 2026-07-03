@@ -20,7 +20,21 @@ async function rawFetch<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   const res = await fetch(path, { ...init, headers })
-  const body: ApiResponse<T> = await res.json()
+
+  // 백엔드가 JSON이 아닌 평문 응답을 줄 수 있다(예: CORS 거절 시 403 "Invalid CORS request").
+  // 그대로 res.json()을 부르면 "Unexpected token 'I'..." 같은 불명확한 파싱 에러가 나므로,
+  // JSON이 아니면 상태코드와 본문을 담은 읽을 수 있는 에러로 변환한다.
+  const raw = await res.text()
+  let body: ApiResponse<T>
+  try {
+    body = JSON.parse(raw) as ApiResponse<T>
+  } catch {
+    const err = Object.assign(
+      new Error(raw?.trim() || `요청 실패 (HTTP ${res.status})`),
+      { status: res.status },
+    )
+    throw err
+  }
 
   if (!body.success) {
     const err = Object.assign(
