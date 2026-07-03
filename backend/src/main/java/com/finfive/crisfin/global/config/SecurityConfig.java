@@ -86,7 +86,16 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(Arrays.asList(allowedOriginsRaw.split(",")));
+        // Origin은 정확히 일치해야 하므로 공백/빈 값/후행 슬래시를 정규화한다.
+        // (예: "https://a.com, https://b.com/" -> ["https://a.com", "https://b.com"])
+        List<String> allowedOrigins = Arrays.stream(allowedOriginsRaw.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isEmpty())
+                .map(origin -> origin.endsWith("/")
+                        ? origin.substring(0, origin.length() - 1)
+                        : origin)
+                .toList();
+        config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("Authorization"));
