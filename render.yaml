@@ -1,0 +1,39 @@
+# Render Blueprint — CrisFin 백엔드(Spring Boot Docker)
+# 사용법: Render 대시보드 → New → Blueprint → 이 저장소 연결 → render.yaml 자동 인식.
+# DB(Neon)와 프론트(Vercel)는 별도. 아래 sync:false 변수는 대시보드에서 직접 입력한다.
+services:
+  - type: web
+    name: crisfin-backend
+    runtime: docker
+    repo: https://github.com/5-FIN/crisfin
+    branch: main
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free          # 무료 티어(시연용). 15분 무요청 시 슬립 → 첫 요청 콜드스타트.
+    region: singapore   # 한국에서 가장 가까운 무료 리전
+    healthCheckPath: /v3/api-docs   # permitAll 경로(DB 불필요) — 앱 기동 확인용
+    autoDeploy: true    # main 푸시 시 자동 재배포
+    envVars:
+      # ── DB (Neon) — 대시보드에서 Neon 연결정보로 입력 ──
+      - key: DB_URL
+        sync: false      # 예: jdbc:postgresql://<host>/<db>?sslmode=require
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      # ── JWT — Render가 안전한 랜덤값 자동 생성 ──
+      - key: JWT_SECRET
+        generateValue: true
+      # ── LLM (OpenAI 단독) ──
+      - key: OPENAI_API_KEY
+        sync: false      # 대시보드에서 실제 키 입력(코드/저장소에 넣지 말 것)
+      - key: LLM_PROVIDERS_ORDER
+        value: OPENAI    # OpenAI 키만 쓰므로 폴백 실패 호출 제거
+      # ── CORS — 프론트 Vercel 도메인 ──
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false      # 예: https://crisfin.vercel.app
+      # ── 무료 인스턴스 부팅 최적화 ──
+      - key: WELFARE_SYNC_ON_STARTUP
+        value: "false"   # 공공데이터 키 없으면 어차피 스킵. 부팅 단축.
+      - key: RAG_AUTO_INDEX_ON_STARTUP
+        value: "false"   # 첫 부팅 임베딩 색인 생략(콜드스타트/비용↓). 필요 시 관리자 재색인 API 사용.
