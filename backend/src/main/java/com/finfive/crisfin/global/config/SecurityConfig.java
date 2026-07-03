@@ -42,7 +42,7 @@ public class SecurityConfig {
     private final JwtProvider jwtProvider;
     private final UserDetailsService userDetailsService;
 
-    @Value("${cors.allowed-origins:http://localhost:3000,http://localhost:5173}")
+    @Value("${cors.allowed-origins:*}")
     private String allowedOriginsRaw;
 
     @Bean
@@ -86,16 +86,21 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        // Origin은 정확히 일치해야 하므로 공백/빈 값/후행 슬래시를 정규화한다.
-        // (예: "https://a.com, https://b.com/" -> ["https://a.com", "https://b.com"])
-        List<String> allowedOrigins = Arrays.stream(allowedOriginsRaw.split(","))
+        // 프론트(Next.js)가 /api/*를 서버사이드로 프록시하지만, 프록시는 브라우저의 Origin 헤더를
+        // 그대로 백엔드에 전달한다. 따라서 배포 IP·도메인·localhost·127.0.0.1 등 어떤 Origin으로
+        // 접속하든 매칭되도록 allowedOriginPatterns를 사용한다.
+        // (allowCredentials=true 에서는 setAllowedOrigins("*")가 금지되므로, 실제 Origin을 그대로
+        //  반사해 주는 allowedOriginPatterns를 써야 한다.)
+        // 공백·빈 값·후행 슬래시를 정규화한다. (예: "https://a.com, https://b.com/" -> [...])
+        List<String> allowedOriginPatterns = Arrays.stream(allowedOriginsRaw.split(","))
                 .map(String::trim)
                 .filter(origin -> !origin.isEmpty())
                 .map(origin -> origin.endsWith("/")
                         ? origin.substring(0, origin.length() - 1)
                         : origin)
                 .toList();
-        config.setAllowedOrigins(allowedOrigins);
+        config.setAllowedOriginPatterns(
+                allowedOriginPatterns.isEmpty() ? List.of("*") : allowedOriginPatterns);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("Authorization"));
