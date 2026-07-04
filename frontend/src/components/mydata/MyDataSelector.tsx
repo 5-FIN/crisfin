@@ -65,9 +65,10 @@ function NumInput({
     <label className="flex items-center justify-between gap-3 text-sm">
       <span className="text-[#64748B]">{label}</span>
       <input
-        type="number"
-        value={Number.isFinite(value) ? value : 0}
-        onChange={e => onChange(Number(e.target.value) || 0)}
+        type="text"
+        inputMode="numeric"
+        value={(Number.isFinite(value) ? value : 0).toLocaleString('ko-KR')}
+        onChange={e => onChange(Number(e.target.value.replace(/[^0-9]/g, '')) || 0)}
         className="w-32 px-2.5 py-1.5 rounded-lg border border-[#E2E8F0] text-right text-[#1E293B]
           focus:outline-none focus:ring-2 focus:ring-[#2563EB] transition"
       />
