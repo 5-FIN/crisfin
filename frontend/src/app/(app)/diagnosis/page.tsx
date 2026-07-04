@@ -175,17 +175,17 @@ export default function DiagnosisPage() {
     <div className="max-w-2xl mx-auto px-4 py-10">
       {/* 스텝 인디케이터 */}
       {step < 5 && (
-        <div className="flex items-center gap-2.5 mb-12">
+        <div className="flex items-center gap-1.5 md:gap-2.5 mb-8 md:mb-12">
           {([1, 2, 3, 4] as const).map(n => (
-            <div key={n} className="flex items-center gap-2.5">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-base font-bold transition-colors
+            <div key={n} className="flex items-center gap-1.5 md:gap-2.5">
+              <div className={`w-7 h-7 md:w-10 md:h-10 rounded-full flex items-center justify-center text-xs md:text-base font-bold transition-colors flex-shrink-0
                 ${step > n ? 'bg-[#10B981] text-white' : step === n ? 'bg-[#2563EB] text-white' : 'bg-[#E2E8F0] text-[#94A3B8]'}`}>
-                {step > n ? <CheckCircle size={20} /> : n}
+                {step > n ? <CheckCircle size={16} /> : n}
               </div>
-              <span className={`text-base ${step === n ? 'text-[#1E293B] font-medium' : 'text-[#94A3B8]'}`}>
+              <span className={`hidden sm:inline text-sm md:text-base whitespace-nowrap ${step === n ? 'text-[#1E293B] font-medium' : 'text-[#94A3B8]'}`}>
                 {['위기 유형', '기본 정보', '마이데이터', '상세 입력'][n - 1]}
               </span>
-              {n < 4 && <div className="w-10 h-px bg-[#E2E8F0]" />}
+              {n < 4 && <div className="w-4 md:w-10 h-px bg-[#E2E8F0] flex-shrink-0" />}
             </div>
           ))}
         </div>
