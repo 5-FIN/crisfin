@@ -49,7 +49,7 @@ export default function LandingPage() {
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
-            href="/signup"
+            href="/login"
             className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#2563EB] text-white font-semibold rounded-xl hover:bg-[#1D4ED8] transition-colors text-base"
           >
             3분 만에 분석 시작 <ArrowRight size={18} />

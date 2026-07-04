@@ -109,8 +109,8 @@ describe('MyDataSelector', () => {
       expect(screen.getByText('상황 요약')).toBeInTheDocument()
     })
 
-    // autoTransfers '월세' 입력(value=600000)을 999999로 변경
-    const wolse = screen.getByDisplayValue('600000') as HTMLInputElement
+    // autoTransfers '월세' 입력(value=600,000)을 999999로 변경
+    const wolse = screen.getByDisplayValue('600,000') as HTMLInputElement
     await user.clear(wolse)
     await user.type(wolse, '999999')
 

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, CreditCard, Gift, CheckSquare,
-  History, Menu, LogOut, ChevronRight, BookOpen, Settings, Star, Search,
+  History, Menu, LogOut, BookOpen, Settings, Star, Search,
 } from 'lucide-react'
 import { cn, tokenStore, analysisStore, paymentStore, CRISIS_LABELS } from '@/lib/utils'
 import { authApi } from '@/lib/api'
@@ -41,7 +41,7 @@ function SidebarNav({
     <div className="flex flex-col h-full">
       {/* 로고 — 클릭 시 홈(대시보드)으로 */}
       <Link
-        href="/dashboard"
+        href="/"
         onClick={onClose}
         className="flex items-center gap-2 px-5 py-5 border-b border-[#E2E8F0] hover:bg-[#F8FAFC] transition-colors"
       >
@@ -175,12 +175,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </button>
           <div className="flex-1" />
           <ThemeToggle />
-          <Link
-            href="/"
-            className="flex items-center gap-1 text-xs text-[#64748B] hover:text-[#2563EB] transition-colors"
-          >
-            처음으로 <ChevronRight size={12} />
-          </Link>
         </header>
 
         {/* 페이지 콘텐츠 */}
