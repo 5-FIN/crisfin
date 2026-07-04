@@ -112,6 +112,15 @@ export default function GuidePage() {
       {/* 가이드 결과 */}
       {guide && !loading && (
         <div className="mt-8 space-y-5">
+          {/* 다른 위기 보기 */}
+          <button
+            onClick={handleReset}
+            className="flex items-center gap-2 text-sm text-[#2563EB] hover:text-[#1D4ED8] font-medium transition-colors"
+          >
+            <ArrowLeft size={15} />
+            다른 위기 보기
+          </button>
+
           {/* 제목 */}
           <div className="flex items-center gap-2">
             <span className="text-2xl">{CRISIS_EMOJI[guide.crisisType]}</span>
@@ -188,15 +197,6 @@ export default function GuidePage() {
               <p className="text-xs text-[#94A3B8] leading-relaxed">{guide.disclaimer}</p>
             </div>
           )}
-
-          {/* 다른 위기 보기 */}
-          <button
-            onClick={handleReset}
-            className="flex items-center gap-2 text-sm text-[#2563EB] hover:text-[#1D4ED8] font-medium transition-colors"
-          >
-            <ArrowLeft size={15} />
-            다른 위기 보기
-          </button>
         </div>
       )}
     </div>
