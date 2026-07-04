@@ -46,8 +46,8 @@ export default function PaymentsPage() {
   ]
 
   return (
-    <div className="px-4 md:px-8 py-10 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold text-[#1E293B] mb-2">납부 관리</h1>
+    <div className="px-4 md:px-8 py-10 max-w-3xl mx-auto">
+      <h1 className="text-3xl font-bold text-[#1E293B] mb-2">납부 관리</h1>
       <p className="text-sm text-[#64748B] mb-8">AI가 분석한 납부 우선순위와 유예 가능 항목입니다.</p>
 
       {/* 요약 카드 */}

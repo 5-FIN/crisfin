@@ -64,8 +64,8 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 md:px-8 py-10">
-      <h1 className="text-2xl font-bold text-[#1E293B] mb-1">설정</h1>
+    <div className="max-w-3xl mx-auto px-4 md:px-8 py-10">
+      <h1 className="text-3xl font-bold text-[#1E293B] mb-1">설정</h1>
       <p className="text-sm text-[#64748B] mb-8">프로필과 지역을 관리하세요. 지역은 복지 추천에 사용됩니다.</p>
 
       <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6 shadow-sm">

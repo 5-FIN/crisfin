@@ -105,7 +105,7 @@ export default function DashboardPage() {
               {CRISIS_LABELS[crisisType]} 대응 중
             </span>
           </div>
-          <h1 className="text-2xl font-bold text-[#1E293B]">내 금융 위기 대응 현황</h1>
+          <h1 className="text-3xl font-bold text-[#1E293B]">내 금융 위기 대응 현황</h1>
           <div className="flex items-center gap-1.5 mt-1.5 text-xs text-[#059669]">
             <ShieldCheck size={13} />
             <span>공식 복지·법령 근거 기반 · 금액은 규칙 엔진 산정 · AI 응답 이중 검증</span>

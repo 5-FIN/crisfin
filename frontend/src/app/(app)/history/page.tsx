@@ -36,7 +36,7 @@ export default function HistoryPage() {
 
   if (error) {
     return (
-      <div className="px-4 md:px-8 py-10 max-w-4xl mx-auto">
+      <div className="px-4 md:px-8 py-10 max-w-3xl mx-auto">
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">
           {error}
         </div>
@@ -46,8 +46,8 @@ export default function HistoryPage() {
 
   if (!data?.content.length) {
     return (
-      <div className="px-4 md:px-8 py-10 max-w-4xl mx-auto">
-        <h1 className="text-xl font-bold text-[#1E293B] mb-6">분석 히스토리</h1>
+      <div className="px-4 md:px-8 py-10 max-w-3xl mx-auto">
+        <h1 className="text-3xl font-bold text-[#1E293B] mb-6">분석 히스토리</h1>
         <div className="bg-white rounded-xl border border-[#E2E8F0] p-12 text-center">
           <p className="text-[#64748B] text-sm">아직 분석 이력이 없습니다.</p>
           <button
@@ -62,8 +62,8 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="px-4 md:px-8 py-10 max-w-4xl mx-auto">
-      <h1 className="text-xl font-bold text-[#1E293B] mb-6">분석 히스토리</h1>
+    <div className="px-4 md:px-8 py-10 max-w-3xl mx-auto">
+      <h1 className="text-3xl font-bold text-[#1E293B] mb-6">분석 히스토리</h1>
       <div className="space-y-3">
         {data.content.map((item) => {
           const summary = (item.result as { summary?: { totalReceivableMax?: number } })?.summary
