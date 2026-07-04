@@ -97,7 +97,7 @@ export default function DashboardPage() {
   return (
     <div className="px-4 md:px-8 py-10 max-w-6xl mx-auto">
       {/* 헤더 */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xl">{CRISIS_EMOJI[crisisType]}</span>
@@ -105,13 +105,13 @@ export default function DashboardPage() {
               {CRISIS_LABELS[crisisType]} 대응 중
             </span>
           </div>
-          <h1 className="text-3xl font-bold text-[#1E293B]">내 금융 위기 대응 현황</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-[#1E293B]">내 금융 위기 대응 현황</h1>
           <div className="flex items-center gap-1.5 mt-1.5 text-xs text-[#059669]">
             <ShieldCheck size={13} />
             <span>공식 복지·법령 근거 기반 · 금액은 규칙 엔진 산정 · AI 응답 이중 검증</span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button onClick={() => { if (!printAnalysisReport(analysis)) alert('팝업이 차단되어 리포트를 열 수 없습니다. 팝업 허용 후 다시 시도해주세요.') }}
             className="text-xs text-[#64748B] hover:text-[#2563EB] flex items-center gap-1 border border-[#E2E8F0] rounded-lg px-3 py-1.5 transition-colors">
             <FileDown size={12} /> PDF 저장
