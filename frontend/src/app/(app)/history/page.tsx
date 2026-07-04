@@ -48,7 +48,7 @@ export default function HistoryPage() {
     return (
       <div className="px-4 md:px-8 py-10 max-w-3xl mx-auto">
         <h1 className="text-3xl font-bold text-[#1E293B] mb-6">분석 히스토리</h1>
-        <div className="bg-white rounded-xl border border-[#E2E8F0] p-12 text-center">
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm p-12 text-center">
           <p className="text-[#64748B] text-sm">아직 분석 이력이 없습니다.</p>
           <button
             onClick={() => router.push('/diagnosis')}
@@ -71,7 +71,7 @@ export default function HistoryPage() {
             <button
               key={item.id}
               onClick={() => handleSelect(item)}
-              className="w-full text-left bg-white rounded-xl border border-[#E2E8F0] p-4 hover:border-[#2563EB] hover:shadow-sm transition-all"
+              className="w-full text-left bg-white rounded-2xl border border-[#E2E8F0] shadow-sm p-4 hover:border-[#2563EB] hover:shadow-md transition-all"
             >
               <div className="flex items-center gap-3">
                 <span className="text-2xl">{CRISIS_EMOJI[item.crisisType] ?? '📋'}</span>

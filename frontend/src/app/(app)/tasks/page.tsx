@@ -136,7 +136,7 @@ export default function TasksPage() {
                 <button
                   key={item.key}
                   onClick={() => toggle(item.key)}
-                  className={`w-full text-left p-4 rounded-2xl border transition-all hover:shadow-sm
+                  className={`w-full text-left p-4 rounded-2xl border shadow-sm transition-all hover:shadow-md
                     ${isDone ? 'border-[#D1FAE5] bg-[#F0FDF4]' : 'border-[#E2E8F0] bg-white hover:border-[#DBEAFE]'}`}
                 >
                   <div className="flex items-start gap-3">

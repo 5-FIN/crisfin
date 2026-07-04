@@ -164,7 +164,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {quadrants.map(({ href, icon: Icon, label, value, sub, color, bg, preview }) => (
           <Link key={label} href={href}
-            className="bg-white rounded-2xl border border-[#E2E8F0] p-5 hover:shadow-md hover:-translate-y-0.5 transition-all group">
+            className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm p-5 hover:shadow-md hover:-translate-y-0.5 transition-all group">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
                  style={{ background: bg }}>
               <Icon size={20} style={{ color }} />

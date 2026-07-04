@@ -83,7 +83,7 @@ export default function WelfareBrowsePage() {
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 size={26} className="text-[#2563EB] animate-spin" /></div>
       ) : items.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-12 text-center text-sm text-[#64748B]">
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm p-12 text-center text-sm text-[#64748B]">
           검색 결과가 없습니다.
         </div>
       ) : (

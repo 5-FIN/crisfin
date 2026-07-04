@@ -72,7 +72,7 @@ export default function BenefitsPage() {
       <p className="text-sm text-[#64748B] mb-8">받을 수 있는 보험금·환급금·복지제도를 한눈에 확인하세요.</p>
 
       {/* 총 수령액 카드 */}
-      <div className="bg-gradient-to-r from-[#ECFDF5] to-[#D1FAE5] rounded-2xl border border-[#A7F3D0] p-6 mb-8">
+      <div className="bg-gradient-to-r from-[#ECFDF5] to-[#D1FAE5] rounded-2xl border border-[#A7F3D0] shadow-sm p-6 mb-8">
         <div className="text-sm text-[#059669] font-medium mb-1">예상 총 수령 가능액</div>
         <div className="text-4xl font-bold tabular-nums text-[#10B981]">
           {fmt(totalMin)} ~ {fmt(totalMax)}

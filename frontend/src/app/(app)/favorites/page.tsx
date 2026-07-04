@@ -37,7 +37,7 @@ export default function FavoritesPage() {
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 size={26} className="text-[#2563EB] animate-spin" /></div>
       ) : items.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-12 text-center">
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm p-12 text-center">
           <Star size={28} className="text-[#CBD5E1] mx-auto mb-3" />
           <p className="text-sm text-[#64748B]">아직 즐겨찾기한 복지 제도가 없어요.</p>
           <Link href="/benefits" className="mt-4 inline-block text-sm text-[#2563EB] hover:underline">받을 수 있는 혜택에서 찾아보기 →</Link>
