@@ -47,7 +47,7 @@ export default function HistoryPage() {
   if (!data?.content.length) {
     return (
       <div className="px-4 md:px-8 py-10 max-w-3xl mx-auto">
-        <h1 className="text-3xl font-bold text-[#1E293B] mb-6">분석 히스토리</h1>
+        <h1 className="text-3xl font-bold text-[#1E293B] mb-8">분석 히스토리</h1>
         <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm p-12 text-center">
           <p className="text-[#64748B] text-sm">아직 분석 이력이 없습니다.</p>
           <button
@@ -63,7 +63,7 @@ export default function HistoryPage() {
 
   return (
     <div className="px-4 md:px-8 py-10 max-w-3xl mx-auto">
-      <h1 className="text-3xl font-bold text-[#1E293B] mb-6">분석 히스토리</h1>
+      <h1 className="text-3xl font-bold text-[#1E293B] mb-8">분석 히스토리</h1>
       <div className="space-y-3">
         {data.content.map((item) => {
           const summary = (item.result as { summary?: { totalReceivableMax?: number } })?.summary

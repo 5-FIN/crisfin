@@ -56,7 +56,7 @@ export default function WelfareBrowsePage() {
   return (
     <div className="px-4 md:px-8 py-10 max-w-3xl mx-auto">
       <h1 className="text-3xl font-bold text-[#1E293B] mb-2">복지 찾기</h1>
-      <p className="text-sm text-[#64748B] mb-6">전국 복지 제도를 검색·필터해서 찾아보세요.</p>
+      <p className="text-sm text-[#64748B] mb-8">전국 복지 제도를 검색·필터해서 찾아보세요.</p>
 
       {/* 검색/필터 바 */}
       <div className="flex flex-col sm:flex-row gap-2 mb-6">
