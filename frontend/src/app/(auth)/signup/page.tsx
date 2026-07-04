@@ -38,18 +38,18 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 mb-6">
-            <BrandMark size={36} />
-            <span className="font-bold text-[#1E293B] text-xl">CrisFin</span>
+    <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center px-4 pt-20 pb-12">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-10">
+          <Link href="/" className="inline-flex items-center gap-2.5 mb-6">
+            <BrandMark size={44} />
+            <span className="font-bold text-[#1E293B] text-2xl">CrisFin</span>
           </Link>
-          <h1 className="text-2xl font-bold text-[#1E293B]">회원가입</h1>
-          <p className="text-sm text-[#64748B] mt-1">3분 무료 분석을 위해 가입하세요</p>
+          <h1 className="text-3xl font-bold text-[#1E293B]">회원가입</h1>
+          <p className="text-base text-[#64748B] mt-2">3분 무료 분석을 위해 가입하세요</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6 shadow-sm">
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-8 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-4">
             {[
               { key: 'email',    label: '이메일',    type: 'email',    placeholder: 'example@email.com' },
@@ -64,7 +64,7 @@ export default function SignupPage() {
                   onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
                   placeholder={placeholder}
                   required
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-[#E2E8F0] text-sm text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent transition"
+                  className="w-full px-3.5 py-3 rounded-lg border border-[#E2E8F0] text-base text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent transition"
                 />
               </div>
             ))}
@@ -75,7 +75,7 @@ export default function SignupPage() {
                 <select
                   value={form.regionCtpv}
                   onChange={e => setForm(f => ({ ...f, regionCtpv: e.target.value, regionSgg: '' }))}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-[#E2E8F0] text-sm text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent transition"
+                  className="w-full px-3.5 py-3 rounded-lg border border-[#E2E8F0] text-base text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent transition"
                 >
                   <option value="">시/도 선택</option>
                   {SIDO_LIST.map(sido => (
@@ -87,7 +87,7 @@ export default function SignupPage() {
                   value={form.regionSgg}
                   onChange={e => setForm(f => ({ ...f, regionSgg: e.target.value }))}
                   disabled={!form.regionCtpv || sigunguOf(form.regionCtpv).length === 0}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-[#E2E8F0] text-sm text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent transition disabled:bg-[#F1F5F9] disabled:text-[#94A3B8] disabled:cursor-not-allowed"
+                  className="w-full px-3.5 py-3 rounded-lg border border-[#E2E8F0] text-base text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent transition disabled:bg-[#F1F5F9] disabled:text-[#94A3B8] disabled:cursor-not-allowed"
                 >
                   <option value="">시/군/구 선택</option>
                   {sigunguOf(form.regionCtpv).map(sgg => (
@@ -104,7 +104,7 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-[#2563EB] text-white font-semibold rounded-lg hover:bg-[#1D4ED8] disabled:opacity-60 disabled:cursor-not-allowed transition-colors text-sm"
+              className="w-full py-3 bg-[#2563EB] text-white font-semibold rounded-lg hover:bg-[#1D4ED8] disabled:opacity-60 disabled:cursor-not-allowed transition-colors text-base"
             >
               {loading ? '가입 중...' : '회원가입 & 분석 시작'}
             </button>

@@ -65,18 +65,18 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 mb-6">
-            <BrandMark size={36} />
-            <span className="font-bold text-[#1E293B] text-xl">CrisFin</span>
+    <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center px-4 pt-20 pb-12">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-10">
+          <Link href="/" className="inline-flex items-center gap-2.5 mb-6">
+            <BrandMark size={44} />
+            <span className="font-bold text-[#1E293B] text-2xl">CrisFin</span>
           </Link>
-          <h1 className="text-2xl font-bold text-[#1E293B]">로그인</h1>
-          <p className="text-sm text-[#64748B] mt-1">계속하려면 로그인하세요</p>
+          <h1 className="text-3xl font-bold text-[#1E293B]">로그인</h1>
+          <p className="text-base text-[#64748B] mt-2">계속하려면 로그인하세요</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6 shadow-sm">
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-8 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-[#1E293B] mb-1.5">이메일</label>
@@ -86,7 +86,7 @@ export default function LoginPage() {
                 onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                 placeholder="example@email.com"
                 required
-                className="w-full px-3.5 py-2.5 rounded-lg border border-[#E2E8F0] text-sm text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent transition"
+                className="w-full px-3.5 py-3 rounded-lg border border-[#E2E8F0] text-base text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent transition"
               />
             </div>
             <div>
@@ -97,7 +97,7 @@ export default function LoginPage() {
                 onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
                 placeholder="8자 이상"
                 required
-                className="w-full px-3.5 py-2.5 rounded-lg border border-[#E2E8F0] text-sm text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent transition"
+                className="w-full px-3.5 py-3 rounded-lg border border-[#E2E8F0] text-base text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent transition"
               />
             </div>
             {error && (
@@ -108,7 +108,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-[#2563EB] text-white font-semibold rounded-lg hover:bg-[#1D4ED8] disabled:opacity-60 disabled:cursor-not-allowed transition-colors text-sm"
+              className="w-full py-3 bg-[#2563EB] text-white font-semibold rounded-lg hover:bg-[#1D4ED8] disabled:opacity-60 disabled:cursor-not-allowed transition-colors text-base"
             >
               {loading ? '로그인 중...' : '로그인'}
             </button>
@@ -119,7 +119,7 @@ export default function LoginPage() {
             <button
               onClick={demoStart}
               disabled={loading}
-              className="w-full py-2.5 bg-[#F1F5F9] text-[#475569] font-semibold rounded-lg hover:bg-[#E2E8F0] disabled:opacity-60 disabled:cursor-not-allowed transition-colors text-sm flex items-center justify-center gap-1.5"
+              className="w-full py-3 bg-[#F1F5F9] text-[#475569] font-semibold rounded-lg hover:bg-[#E2E8F0] disabled:opacity-60 disabled:cursor-not-allowed transition-colors text-base flex items-center justify-center gap-1.5"
             >
               <Zap size={15} className="text-[#2563EB]" /> 데모로 바로 시작 (로그인 스킵)
             </button>
