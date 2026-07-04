@@ -193,11 +193,11 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* 긴급 할 일 미리보기 */}
+      {/* 액션 체크리스트 미리보기 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-[#1E293B]">긴급 할 일</h3>
+            <h3 className="font-semibold text-[#1E293B]">액션 체크리스트</h3>
             <Link href="/tasks" className="text-xs text-[#2563EB] hover:underline flex items-center gap-1">
               전체보기 <ArrowRight size={12} />
             </Link>
