@@ -89,15 +89,16 @@ function SidebarNav({
         })}
       </nav>
 
-      {/* 하단 로그아웃 */}
-      <div className="px-3 py-4 border-t border-[#E2E8F0]">
+      {/* 하단 로그아웃 + 다크모드 토글 */}
+      <div className="px-3 py-4 border-t border-[#E2E8F0] flex items-center gap-2">
         <button
           onClick={onLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#EF4444] transition-colors"
+          className="flex-1 flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#EF4444] transition-colors"
         >
           <LogOut size={18} />
           <span>로그아웃</span>
         </button>
+        <ThemeToggle />
       </div>
     </div>
   )
@@ -165,16 +166,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* 메인 영역 */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* 탑바 */}
-        <header className="h-14 bg-white border-b border-[#E2E8F0] flex items-center px-4 gap-3 flex-shrink-0">
+        {/* 모바일 탑바 — 햄버거 메뉴만 (데스크탑에선 상단 바 없음) */}
+        <header className="md:hidden h-14 bg-white border-b border-[#E2E8F0] flex items-center px-4 flex-shrink-0">
           <button
-            className="md:hidden p-1.5 rounded-lg hover:bg-[#F1F5F9] text-[#475569]"
+            className="p-1.5 rounded-lg hover:bg-[#F1F5F9] text-[#475569]"
             onClick={() => setOpen(true)}
           >
             <Menu size={20} />
           </button>
-          <div className="flex-1" />
-          <ThemeToggle />
         </header>
 
         {/* 페이지 콘텐츠 */}
