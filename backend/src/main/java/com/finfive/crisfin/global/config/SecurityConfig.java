@@ -2,6 +2,7 @@ package com.finfive.crisfin.global.config;
 
 import com.finfive.crisfin.global.filter.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -39,6 +40,13 @@ public class SecurityConfig {
 
     private final JwtProvider jwtProvider;
     private final UserDetailsService userDetailsService;
+
+    /**
+     * 허용할 Origin 목록 (콤마 구분). {@code cors.allowed-origins} → {@code CORS_ALLOWED_ORIGINS} env로 덮어쓴다.
+     * 정확한 Origin(http://localhost:3000)뿐 아니라 패턴(https://*.vercel.app)도 그대로 지원한다.
+     */
+    @Value("${cors.allowed-origins}")
+    private List<String> allowedOrigins;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -81,14 +89,12 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        // 프론트(Next.js)가 /api/*를 서버사이드로 프록시하지만, 프록시는 브라우저의 Origin 헤더를
-        // 그대로 백엔드에 전달한다. 배포 IP·도메인·포트가 바뀔 때마다 허용 목록을 정확히 맞추는 것은
-        // 계속 어긋나 CORS 거절(Invalid CORS request)을 유발했다.
-        // 백엔드는 docker 내부 네트워크 전용(호스트로 8080 미노출)이라 CORS는 실질적 보안 경계가
-        // 아니므로, 앱 계층에서 모든 Origin을 반사(allow-all)로 고정한다.
-        // (allowCredentials=true 에서는 setAllowedOrigins("*")가 금지되므로, 실제 Origin을 그대로
-        //  반사해 주는 allowedOriginPatterns("*")를 써야 한다.)
-        config.setAllowedOriginPatterns(List.of("*"));
+        // 허용 Origin은 application.yml의 cors.allowed-origins(=CORS_ALLOWED_ORIGINS env)에서 주입한다.
+        // setAllowedOrigins 대신 allowedOriginPatterns를 쓰는 이유:
+        //   1) allowCredentials=true 에서 정확 매칭/패턴("https://*.vercel.app") 모두 안전하게 지원.
+        //   2) 배포 포트·서브도메인이 바뀌어도 패턴 한 줄로 흡수 가능.
+        // 배포 프론트 도메인이 바뀌면 CORS_ALLOWED_ORIGINS 값에 추가하면 된다.
+        config.setAllowedOriginPatterns(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("Authorization"));
