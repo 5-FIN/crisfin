@@ -199,8 +199,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
         </header>
 
-        {/* 페이지 콘텐츠 */}
-        <main className="flex-1 overflow-y-auto">
+        {/* 페이지 콘텐츠 — 스크롤바 공간을 항상 예약해 페이지 간 가로 위치가 흔들리지 않게 한다 */}
+        <main className="flex-1 overflow-y-auto [scrollbar-gutter:stable]">
           {children}
         </main>
       </div>
