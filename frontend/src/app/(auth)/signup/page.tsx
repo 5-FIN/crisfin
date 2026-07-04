@@ -38,7 +38,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center px-4 pt-20 pb-12">
+    <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center px-4 pt-12 md:pt-20 pb-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
           <Link href="/" className="inline-flex items-center gap-2.5 mb-6">
