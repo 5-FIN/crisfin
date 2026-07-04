@@ -319,23 +319,23 @@ export default function DiagnosisPage() {
 
       {/* Step 5: AI 분석 중 */}
       {step === 5 && (
-        <div className="text-center py-16">
-          <div className="w-20 h-20 rounded-full bg-[#EFF6FF] flex items-center justify-center mx-auto mb-6">
-            <Loader2 size={36} className="text-[#2563EB] animate-spin" />
+        <div className="text-center py-24">
+          <div className="w-28 h-28 rounded-full bg-[#EFF6FF] flex items-center justify-center mx-auto mb-8">
+            <Loader2 size={52} className="text-[#2563EB] animate-spin" />
           </div>
-          <h2 className="text-2xl font-bold text-[#1E293B] mb-3">AI가 분석 중입니다</h2>
-          <p className="text-[#64748B] mb-8">{loadingMsg}</p>
-          <div className="max-w-xs mx-auto space-y-2">
+          <h2 className="text-4xl font-bold text-[#1E293B] mb-4">AI가 분석 중입니다</h2>
+          <p className="text-lg text-[#64748B] mb-10">{loadingMsg}</p>
+          <div className="max-w-md mx-auto space-y-3">
             {['재정 데이터 수집', 'AI 위기 분석', '맞춤 액션 플랜 생성'].map((msg, i) => (
-              <div key={msg} className="flex items-center gap-3 px-4 py-3 bg-[#F8FAFC] rounded-lg">
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs
+              <div key={msg} className="flex items-center gap-3.5 px-5 py-4 bg-[#F8FAFC] rounded-xl">
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm flex-shrink-0
                   ${loadingMsg.includes('결과') && i < 3 ? 'bg-[#10B981] text-white' :
                     loadingMsg.includes('분석') && i < 2 ? 'bg-[#10B981] text-white' :
                     loadingMsg.includes('불러') && i < 1 ? 'bg-[#10B981] text-white' :
                     'bg-[#E2E8F0]'}`}>
                   {i + 1}
                 </div>
-                <span className="text-sm text-[#475569]">{msg}</span>
+                <span className="text-base text-[#475569]">{msg}</span>
               </div>
             ))}
           </div>
