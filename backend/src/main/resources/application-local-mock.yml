@@ -1,3 +1,8 @@
 llm:
   providers:
     order: MOCK
+
+# 데모/목 프로파일에서는 모든 위기유형이 구체적 받을 금액·지원처·신청 링크를 표시하도록
+# 규칙 엔진의 데모 금액 경로를 켠다(운영/테스트는 기본 false 유지).
+analysis:
+  demo-amounts: true

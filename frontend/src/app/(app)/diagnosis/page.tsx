@@ -134,10 +134,20 @@ export default function DiagnosisPage() {
     setStep(5)
     setError('')
     try {
+      const startedAt = Date.now()
       setLoadingMsg('AI가 상황을 분석하는 중...')
       const result = await analysisApi.recommend(req)
 
       setLoadingMsg('결과를 정리하는 중...')
+      // 목(MOCK) 응답은 즉시 반환돼 로딩 연출이 스쳐 지나가므로, 실제 분석처럼
+      // 보이도록 최소 표시시간(5초)을 채운 뒤 이동한다. 실제 LLM 응답에는 영향 없음.
+      if (result.llmProvider === 'MOCK') {
+        const elapsed = Date.now() - startedAt
+        const minMs = 5000
+        if (elapsed < minMs) {
+          await new Promise(resolve => setTimeout(resolve, minMs - elapsed))
+        }
+      }
       analysisStore.save(result)
       pendingAnalysisStore.clear()
       router.push('/dashboard')
