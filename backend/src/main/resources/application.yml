@@ -28,7 +28,9 @@ server:
   # Render/클라우드는 $PORT를 주입한다. 로컬은 8080 기본.
   port: ${PORT:8080}
 cors:
-  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+  # 콤마 구분 문자열 → List<String>로 바인딩. CORS_ALLOWED_ORIGINS env로 전체 덮어쓰기 가능.
+  # EC2_PUBLIC_IP env가 있으면 사용, 없으면 기본 IP로 폴백(미정의 시 기동 실패 방지).
+  allowed-origins: http://localhost:8080,http://127.0.0.1:8080,http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000,http://${EC2_PUBLIC_IP}:3000
 jwt:
   secret: ${JWT_SECRET:crisfin-dev-secret-key-must-be-at-least-256-bits-long-for-hs256-testing}
   access-expiration: 1800000
