@@ -176,8 +176,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </button>
         </header>
 
-        {/* 페이지 콘텐츠 */}
-        <main className="flex-1 overflow-y-auto">
+        {/* 페이지 콘텐츠 — 데스크탑은 상단 바가 없으므로 약간의 상단 여백을 준다 */}
+        <main className="flex-1 overflow-y-auto md:pt-6">
           {children}
         </main>
       </div>
