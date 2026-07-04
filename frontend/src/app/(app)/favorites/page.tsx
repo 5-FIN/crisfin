@@ -40,7 +40,7 @@ export default function FavoritesPage() {
         <div className="bg-white rounded-2xl border border-[#E2E8F0] p-12 text-center">
           <Star size={28} className="text-[#CBD5E1] mx-auto mb-3" />
           <p className="text-sm text-[#64748B]">아직 즐겨찾기한 복지 제도가 없어요.</p>
-          <Link href="/benefits" className="mt-4 inline-block text-sm text-[#2563EB] hover:underline">혜택 매처에서 찾아보기 →</Link>
+          <Link href="/benefits" className="mt-4 inline-block text-sm text-[#2563EB] hover:underline">받을 수 있는 혜택에서 찾아보기 →</Link>
         </div>
       ) : (
         <div className="space-y-3">
