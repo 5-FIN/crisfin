@@ -175,17 +175,17 @@ export default function DiagnosisPage() {
     <div className="max-w-2xl mx-auto px-4 py-10">
       {/* 스텝 인디케이터 */}
       {step < 5 && (
-        <div className="flex items-center gap-2 mb-10">
+        <div className="flex items-center gap-2.5 mb-12">
           {([1, 2, 3, 4] as const).map(n => (
-            <div key={n} className="flex items-center gap-2">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors
+            <div key={n} className="flex items-center gap-2.5">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-base font-bold transition-colors
                 ${step > n ? 'bg-[#10B981] text-white' : step === n ? 'bg-[#2563EB] text-white' : 'bg-[#E2E8F0] text-[#94A3B8]'}`}>
-                {step > n ? <CheckCircle size={16} /> : n}
+                {step > n ? <CheckCircle size={20} /> : n}
               </div>
-              <span className={`text-sm ${step === n ? 'text-[#1E293B] font-medium' : 'text-[#94A3B8]'}`}>
+              <span className={`text-base ${step === n ? 'text-[#1E293B] font-medium' : 'text-[#94A3B8]'}`}>
                 {['위기 유형', '기본 정보', '마이데이터', '상세 입력'][n - 1]}
               </span>
-              {n < 4 && <div className="w-8 h-px bg-[#E2E8F0]" />}
+              {n < 4 && <div className="w-10 h-px bg-[#E2E8F0]" />}
             </div>
           ))}
         </div>
@@ -194,19 +194,19 @@ export default function DiagnosisPage() {
       {/* Step 1: 위기 유형 선택 */}
       {step === 1 && (
         <div>
-          <h2 className="text-2xl font-bold text-[#1E293B] mb-2">어떤 위기 상황인가요?</h2>
-          <p className="text-[#64748B] mb-8">해당하는 위기 유형을 선택해주세요.</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <h2 className="text-3xl font-bold text-[#1E293B] mb-2">어떤 위기 상황인가요?</h2>
+          <p className="text-lg text-[#64748B] mb-8">해당하는 위기 유형을 선택해주세요.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {CRISIS_OPTIONS.map(({ key, label, emoji, desc }) => (
               <button
                 key={key}
                 onClick={() => { setCrisis(key); setStep(2) }}
-                className={`p-5 rounded-xl border-2 text-left transition-all hover:shadow-md hover:-translate-y-0.5
+                className={`p-6 rounded-xl border-2 text-left transition-all hover:shadow-md hover:-translate-y-0.5
                   ${crisis === key ? 'border-[#2563EB] bg-[#EFF6FF]' : 'border-[#E2E8F0] bg-white hover:border-[#DBEAFE]'}`}
               >
-                <div className="text-3xl mb-3">{emoji}</div>
-                <div className="font-semibold text-[#1E293B] mb-1">{label}</div>
-                <div className="text-xs text-[#64748B]">{desc}</div>
+                <div className="text-4xl mb-3">{emoji}</div>
+                <div className="text-lg font-semibold text-[#1E293B] mb-1">{label}</div>
+                <div className="text-sm text-[#64748B]">{desc}</div>
               </button>
             ))}
           </div>
@@ -319,23 +319,23 @@ export default function DiagnosisPage() {
 
       {/* Step 5: AI 분석 중 */}
       {step === 5 && (
-        <div className="text-center py-16">
-          <div className="w-20 h-20 rounded-full bg-[#EFF6FF] flex items-center justify-center mx-auto mb-6">
-            <Loader2 size={36} className="text-[#2563EB] animate-spin" />
+        <div className="text-center py-24">
+          <div className="w-28 h-28 rounded-full bg-[#EFF6FF] flex items-center justify-center mx-auto mb-8">
+            <Loader2 size={52} className="text-[#2563EB] animate-spin" />
           </div>
-          <h2 className="text-2xl font-bold text-[#1E293B] mb-3">AI가 분석 중입니다</h2>
-          <p className="text-[#64748B] mb-8">{loadingMsg}</p>
-          <div className="max-w-xs mx-auto space-y-2">
+          <h2 className="text-4xl font-bold text-[#1E293B] mb-4">AI가 분석 중입니다</h2>
+          <p className="text-lg text-[#64748B] mb-10">{loadingMsg}</p>
+          <div className="max-w-md mx-auto space-y-3">
             {['재정 데이터 수집', 'AI 위기 분석', '맞춤 액션 플랜 생성'].map((msg, i) => (
-              <div key={msg} className="flex items-center gap-3 px-4 py-3 bg-[#F8FAFC] rounded-lg">
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs
+              <div key={msg} className="flex items-center gap-3.5 px-5 py-4 bg-[#F8FAFC] rounded-xl">
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm flex-shrink-0
                   ${loadingMsg.includes('결과') && i < 3 ? 'bg-[#10B981] text-white' :
                     loadingMsg.includes('분석') && i < 2 ? 'bg-[#10B981] text-white' :
                     loadingMsg.includes('불러') && i < 1 ? 'bg-[#10B981] text-white' :
                     'bg-[#E2E8F0]'}`}>
                   {i + 1}
                 </div>
-                <span className="text-sm text-[#475569]">{msg}</span>
+                <span className="text-base text-[#475569]">{msg}</span>
               </div>
             ))}
           </div>

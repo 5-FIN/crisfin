@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Loader2, Copy, Check, CheckCircle, BookOpen, ArrowLeft } from 'lucide-react'
+import { Loader2, Copy, Check, CheckCircle, ArrowLeft } from 'lucide-react'
 import { guideApi } from '@/lib/api'
 import { CRISIS_LABELS, CRISIS_EMOJI, cn } from '@/lib/utils'
 import type { CrisisType, GuideResponse } from '@/lib/types'
@@ -55,17 +55,10 @@ export default function GuidePage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-10">
+    <div className="px-4 md:px-8 py-10 max-w-3xl mx-auto">
       {/* 헤더 */}
-      <div className="flex items-center gap-3 mb-2">
-        <div className="w-10 h-10 rounded-xl bg-[#EFF6FF] flex items-center justify-center">
-          <BookOpen size={20} className="text-[#2563EB]" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-[#1E293B]">무료 정보 길라잡이</h1>
-          <p className="text-sm text-[#64748B]">로그인 없이 위기 유형별 핵심 정보와 AI 프롬프트를 제공합니다</p>
-        </div>
-      </div>
+      <h1 className="text-3xl font-bold text-[#1E293B] mb-2">무료 정보 길라잡이</h1>
+      <p className="text-sm text-[#64748B]">로그인 없이 위기 유형별 핵심 정보와 AI 프롬프트를 제공합니다</p>
 
       {/* 위기 유형 선택 (가이드 결과가 없을 때만 표시) */}
       {!guide && !loading && (
@@ -128,7 +121,7 @@ export default function GuidePage() {
           </div>
 
           {/* coachingPrompt 박스 */}
-          <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] overflow-hidden">
+          <div className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] shadow-sm overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-[#E2E8F0] bg-white">
               <span className="text-sm font-semibold text-[#1E293B]">AI 프롬프트</span>
               <button
@@ -159,7 +152,7 @@ export default function GuidePage() {
 
           {/* 핵심 수칙 카드 */}
           {guide.keyRules.length > 0 && (
-            <div className="rounded-xl border border-[#E2E8F0] bg-white overflow-hidden">
+            <div className="rounded-2xl border border-[#E2E8F0] bg-white shadow-sm overflow-hidden">
               <div className="px-4 py-3 border-b border-[#E2E8F0]">
                 <span className="text-sm font-semibold text-[#1E293B]">핵심 수칙</span>
               </div>

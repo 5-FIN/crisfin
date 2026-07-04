@@ -54,9 +54,9 @@ export default function WelfareBrowsePage() {
   const items = data?.content ?? []
 
   return (
-    <div className="px-4 md:px-8 py-8 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold text-[#1E293B] mb-2">복지 찾기</h1>
-      <p className="text-sm text-[#64748B] mb-6">전국 복지 제도를 검색·필터해서 찾아보세요.</p>
+    <div className="px-4 md:px-8 py-10 max-w-3xl mx-auto">
+      <h1 className="text-3xl font-bold text-[#1E293B] mb-2">복지 찾기</h1>
+      <p className="text-sm text-[#64748B] mb-8">전국 복지 제도를 검색·필터해서 찾아보세요.</p>
 
       {/* 검색/필터 바 */}
       <div className="flex flex-col sm:flex-row gap-2 mb-6">
@@ -83,7 +83,7 @@ export default function WelfareBrowsePage() {
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 size={26} className="text-[#2563EB] animate-spin" /></div>
       ) : items.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-12 text-center text-sm text-[#64748B]">
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm p-12 text-center text-sm text-[#64748B]">
           검색 결과가 없습니다.
         </div>
       ) : (

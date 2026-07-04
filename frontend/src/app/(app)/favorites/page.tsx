@@ -26,8 +26,8 @@ export default function FavoritesPage() {
   }
 
   return (
-    <div className="px-4 md:px-8 py-8 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold text-[#1E293B] mb-2">즐겨찾기</h1>
+    <div className="px-4 md:px-8 py-10 max-w-3xl mx-auto">
+      <h1 className="text-3xl font-bold text-[#1E293B] mb-2">즐겨찾기</h1>
       <p className="text-sm text-[#64748B] mb-8">저장해 둔 복지 제도를 모아봤어요.</p>
 
       {error && (
@@ -37,10 +37,10 @@ export default function FavoritesPage() {
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 size={26} className="text-[#2563EB] animate-spin" /></div>
       ) : items.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-12 text-center">
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm p-12 text-center">
           <Star size={28} className="text-[#CBD5E1] mx-auto mb-3" />
           <p className="text-sm text-[#64748B]">아직 즐겨찾기한 복지 제도가 없어요.</p>
-          <Link href="/benefits" className="mt-4 inline-block text-sm text-[#2563EB] hover:underline">혜택 매처에서 찾아보기 →</Link>
+          <Link href="/benefits" className="mt-4 inline-block text-sm text-[#2563EB] hover:underline">받을 수 있는 혜택에서 찾아보기 →</Link>
         </div>
       ) : (
         <div className="space-y-3">

@@ -68,8 +68,8 @@ export default function TasksPage() {
   }
 
   return (
-    <div className="px-4 md:px-8 py-8 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold text-[#1E293B] mb-2">액션 체크리스트</h1>
+    <div className="px-4 md:px-8 py-10 max-w-3xl mx-auto">
+      <h1 className="text-3xl font-bold text-[#1E293B] mb-2">액션 체크리스트</h1>
       <p className="text-sm text-[#64748B] mb-8">긴급도 순으로 정렬된 30일 타임라인입니다.</p>
 
       {/* 100% 달성 축하 배너 */}
@@ -136,7 +136,7 @@ export default function TasksPage() {
                 <button
                   key={item.key}
                   onClick={() => toggle(item.key)}
-                  className={`w-full text-left p-4 rounded-2xl border transition-all hover:shadow-sm
+                  className={`w-full text-left p-4 rounded-2xl border shadow-sm transition-all hover:shadow-md
                     ${isDone ? 'border-[#D1FAE5] bg-[#F0FDF4]' : 'border-[#E2E8F0] bg-white hover:border-[#DBEAFE]'}`}
                 >
                   <div className="flex items-start gap-3">

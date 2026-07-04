@@ -95,7 +95,7 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="px-4 md:px-8 py-8 max-w-6xl mx-auto">
+    <div className="px-4 md:px-8 py-10 max-w-6xl mx-auto">
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -105,7 +105,7 @@ export default function DashboardPage() {
               {CRISIS_LABELS[crisisType]} 대응 중
             </span>
           </div>
-          <h1 className="text-2xl font-bold text-[#1E293B]">내 금융 위기 대응 현황</h1>
+          <h1 className="text-3xl font-bold text-[#1E293B]">내 금융 위기 대응 현황</h1>
           <div className="flex items-center gap-1.5 mt-1.5 text-xs text-[#059669]">
             <ShieldCheck size={13} />
             <span>공식 복지·법령 근거 기반 · 금액은 규칙 엔진 산정 · AI 응답 이중 검증</span>
@@ -164,7 +164,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {quadrants.map(({ href, icon: Icon, label, value, sub, color, bg, preview }) => (
           <Link key={label} href={href}
-            className="bg-white rounded-2xl border border-[#E2E8F0] p-5 hover:shadow-md hover:-translate-y-0.5 transition-all group">
+            className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm p-5 hover:shadow-md hover:-translate-y-0.5 transition-all group">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
                  style={{ background: bg }}>
               <Icon size={20} style={{ color }} />
@@ -193,11 +193,11 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* 긴급 할 일 미리보기 */}
+      {/* 액션 체크리스트 미리보기 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-[#1E293B]">긴급 할 일</h3>
+            <h3 className="font-semibold text-[#1E293B]">액션 체크리스트</h3>
             <Link href="/tasks" className="text-xs text-[#2563EB] hover:underline flex items-center gap-1">
               전체보기 <ArrowRight size={12} />
             </Link>
