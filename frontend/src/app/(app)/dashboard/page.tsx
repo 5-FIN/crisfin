@@ -95,7 +95,7 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="px-4 md:px-8 py-8 max-w-6xl mx-auto">
+    <div className="px-4 md:px-8 py-10 max-w-6xl mx-auto">
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-8">
         <div>

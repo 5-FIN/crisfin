@@ -67,7 +67,7 @@ export default function BenefitsPage() {
   const FILTERS: Category[] = ['전체', '보험/환급', '복지제도']
 
   return (
-    <div className="px-4 md:px-8 py-8 max-w-4xl mx-auto">
+    <div className="px-4 md:px-8 py-10 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold text-[#1E293B] mb-2">혜택 매처</h1>
       <p className="text-sm text-[#64748B] mb-8">받을 수 있는 보험금·환급금·복지제도를 한눈에 확인하세요.</p>
 
